@@ -5,7 +5,8 @@ import React, { useState, useRef } from 'react';
 import { 
   User, Shield, Moon, Sun, Monitor, Languages, Brain, 
   ChevronLeft, Camera, Image as ImageIcon, Check, Lock, 
-  ArrowRight, Trash2, X, CheckCircle2, Info, Mail, Save
+  ArrowRight, Trash2, X, CheckCircle2, Info, Mail, Save,
+  Cloud, ExternalLink, Globe
 } from 'lucide-react';
 import { UserLevel } from '../types';
 import ConfirmationModal from './ConfirmationModal';
@@ -45,7 +46,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [passChanged, setPassChanged] = useState(false);
   
-  // Recovery Email State
   const [recoveryEmail, setRecoveryEmail] = useState('recovery@example.com');
   const [isUpdatingRecovery, setIsUpdatingRecovery] = useState(false);
   const [recoveryUpdated, setRecoveryUpdated] = useState(false);
@@ -82,7 +82,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   const handleRecoveryEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUpdatingRecovery(true);
-    // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     setIsUpdatingRecovery(false);
     setRecoveryUpdated(true);
@@ -216,7 +215,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                             src={user?.pfp || 'https://api.dicebear.com/7.x/fun-emoji/svg?seed=guest'} 
                             className="w-full h-full object-cover" 
                             alt="Selected Avatar" 
-                            onError={(e) => (e.currentTarget.src = 'https://api.dicebear.com/7.x/fun-emoji/svg?seed=error')}
                           />
                        </div>
                        <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-2">Live Preview</p>
@@ -273,7 +271,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
 
                 {subView === 'security' && (
                   <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                    {/* Password Section */}
                     <div className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm space-y-6">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="p-2 bg-indigo-100 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg">
@@ -330,64 +327,51 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                         </button>
                       </form>
                     </div>
-
-                    {/* Recovery Email Section */}
-                    <div className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm space-y-6">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="p-2 bg-violet-100 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 rounded-lg">
-                          <Mail size={16} />
-                        </div>
-                        <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-widest">Recovery Email</h4>
-                      </div>
-                      
-                      <form onSubmit={handleRecoveryEmailSubmit} className="space-y-6">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Academic Recovery Address</label>
-                          <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                              <Mail size={18} />
-                            </div>
-                            <input 
-                              type="email" 
-                              required
-                              value={recoveryEmail}
-                              onChange={(e) => setRecoveryEmail(e.target.value)}
-                              className="w-full pl-12 pr-5 py-4 rounded-2xl bg-slate-50 dark:bg-[#0b0f1a] border border-slate-200 dark:border-slate-800 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all text-slate-900 dark:text-white" 
-                              placeholder="recovery@university.edu"
-                            />
-                          </div>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 ml-1 leading-relaxed">
-                            This email will be used if you lose access to your primary account.
-                          </p>
-                        </div>
-
-                        {recoveryUpdated && (
-                          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-2xl border border-emerald-100 dark:border-emerald-900/30 flex items-center gap-3 animate-in fade-in zoom-in-95">
-                            <CheckCircle2 size={18} /> Recovery email verified & saved!
-                          </div>
-                        )}
-
-                        <button 
-                          type="submit"
-                          disabled={isUpdatingRecovery}
-                          className="w-full py-4 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-2xl text-sm font-black shadow-xl shadow-slate-500/10 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
-                        >
-                          {isUpdatingRecovery ? (
-                            <div className="w-5 h-5 border-2 border-white dark:border-slate-900 border-t-transparent rounded-full animate-spin" />
-                          ) : (
-                            <>
-                              <Save size={18} />
-                              Save Recovery Options
-                            </>
-                          )}
-                        </button>
-                      </form>
-                    </div>
                   </div>
                 )}
               </div>
             ) : (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+                {/* Deployment Section */}
+                <div className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm overflow-hidden relative group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-orange-500/20 transition-colors" />
+                  <div className="flex items-center gap-3 mb-6 relative">
+                    <div className="p-2.5 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl">
+                      <Globe size={20} />
+                    </div>
+                    <div>
+                      <h4 className="font-black text-slate-900 dark:text-white uppercase text-xs tracking-widest">Deployment & Cloud</h4>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Cloudflare Pages Sync</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4 relative">
+                    <div className="p-5 bg-slate-50 dark:bg-[#0b0f1a] rounded-2xl border border-slate-100 dark:border-slate-800">
+                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
+                        To host this **MathMentor AI** project on your own domain, connect this repository to Cloudflare Pages. It supports automatic builds and global edge delivery.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <a 
+                          href="https://dash.cloudflare.com/" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-orange-500/20 active:scale-95"
+                        >
+                          <Cloud size={16} /> Open Cloudflare
+                        </a>
+                        <a 
+                          href="https://developers.cloudflare.com/pages/framework-guides/deploy-a-react-site/" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex-1 px-4 py-3 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95"
+                        >
+                          <ExternalLink size={16} /> Setup Guide
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl">
