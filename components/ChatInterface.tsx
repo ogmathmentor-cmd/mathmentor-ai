@@ -200,8 +200,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
               const l = inputData.length;
               const int16 = new Int16Array(l);
               for (let i = 0; i < l; i++) int16[i] = inputData[i] * 32768;
-              const binary = String.fromCharCode(...new Uint8Array(int16.buffer));
+              
+              // Correct Base64 conversion to avoid Stack Overflow
+              const bytes = new Uint8Array(int16.buffer);
+              let binary = '';
+              for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+              }
               const base64 = btoa(binary);
+              
               sessionPromise.then(session => {
                 session.sendRealtimeInput({ media: { data: base64, mimeType: 'audio/pcm;rate=16000' } });
               });
