@@ -99,6 +99,14 @@ const handleApiError = (error: any, language: Language): string => {
   console.error("Gemini API Error:", error);
   const status = error?.status || error?.error?.code;
   
+  // Custom check for the common typo noticed in the screenshot
+  const key = process.env.API_KEY || "";
+  if (key.startsWith("AlzaSy")) {
+    return language === 'BM'
+      ? "Ralat kunci API: Kunci anda bermula dengan 'AlzaSy'. Sila pastikan ia sepatutnya 'AIzaSy' (huruf besar I) dalam dashboard Hostinger anda."
+      : "API Key Error: Your key starts with 'AlzaSy'. Please check if it should be 'AIzaSy' (capital I) in your Hostinger dashboard.";
+  }
+
   if (status === 429) {
     return language === 'BM' 
       ? "Terlalu banyak permintaan. Sila tunggu sebentar sebelum mencuba lagi." 
@@ -132,7 +140,17 @@ export const solveMathProblem = async (
   socraticEnabled: boolean = true,
   reasoningMode: 'fast' | 'deep' = 'deep'
 ): Promise<MathResponse> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const key = process.env.API_KEY;
+  
+  if (!key) {
+    return {
+      text: language === 'BM' ? "Kunci API tidak dijumpai. Sila pastikan ia ditetapkan dalam dashboard Hostinger." : "API Key not found. Please ensure it is set in your Hostinger dashboard.",
+      citations: [],
+      isError: true
+    };
+  }
+
+  const ai = new GoogleGenAI({ apiKey: key });
   
   const isOpenAILevel = level === UserLevel.OPENAI;
   const levelContext = isOpenAILevel ? "Level: General AI Tutor" : `User Level: ${level}${subLevel ? ` (${subLevel})` : ""}`;
@@ -212,8 +230,7 @@ export const solveMathProblem = async (
 };
 
 export const generateStudyNotes = async (files: FileAttachment[], language: Language): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  // Gemini 3 Flash is preferred for its massive context window and speed in cross-document analysis
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const modelName = 'gemini-3-flash-preview';
   
   const systemInstruction = QUICKNOTES_PROMPT.replace(/\[LANGUAGE_TOKEN\]/g, language);
@@ -256,7 +273,7 @@ export const generateIllustration = async (
   size: ImageSize = '1K',
   isManualHighRes: boolean = false
 ): Promise<string | null> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const model = isManualHighRes ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
   
   const imageConfig: any = { aspectRatio: "1:1" };
@@ -288,7 +305,7 @@ export const generateIllustration = async (
 };
 
 export const generateQuiz = async (topic: string, level: UserLevel, language: Language, difficulty: QuizDifficulty = 'medium', focusAreas?: string[]): Promise<Quiz> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
   const focusAreasText = focusAreas && focusAreas.length > 0 ? `STRICTLY focus only on these areas: ${focusAreas.join(', ')}.` : '';
   
   const systemInstruction = `${SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language)}
