@@ -332,46 +332,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({
               </div>
             ) : (
               <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                {/* Deployment Section */}
-                <div className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm overflow-hidden relative group">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-orange-500/20 transition-colors" />
-                  <div className="flex items-center gap-3 mb-6 relative">
-                    <div className="p-2.5 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl">
-                      <Globe size={20} />
-                    </div>
-                    <div>
-                      <h4 className="font-black text-slate-900 dark:text-white uppercase text-xs tracking-widest">Deployment & Cloud</h4>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Cloudflare Pages Sync</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4 relative">
-                    <div className="p-5 bg-slate-50 dark:bg-[#0b0f1a] rounded-2xl border border-slate-100 dark:border-slate-800">
-                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-                        To host this **MathMentor AI** project on your own domain, connect this repository to Cloudflare Pages. It supports automatic builds and global edge delivery.
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <a 
-                          href="https://dash.cloudflare.com/" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-orange-500/20 active:scale-95"
-                        >
-                          <Cloud size={16} /> Open Cloudflare
-                        </a>
-                        <a 
-                          href="https://developers.cloudflare.com/pages/framework-guides/deploy-a-react-site/" 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex-1 px-4 py-3 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all hover:bg-slate-300 dark:hover:bg-slate-700 active:scale-95"
-                        >
-                          <ExternalLink size={16} /> Setup Guide
-                        </a>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="bg-white dark:bg-[#111827] rounded-3xl border border-slate-200 dark:border-slate-800 p-8 shadow-sm">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl">

@@ -1,8 +1,8 @@
 
 // App.tsx
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { UserLevel, Message, FileAttachment, ChatMode, ImageSize, Citation, Language, Toast as ToastType } from './types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { UserLevel, Message, FileAttachment, ChatMode, Language, Toast as ToastType } from './types';
 import Header from './components/Header';
 import HomeScreen from './components/HomeScreen';
 import ChatInterface from './components/ChatInterface';
@@ -13,7 +13,7 @@ import SettingsView from './components/SettingsView';
 import FeedbackModal from './components/FeedbackModal';
 import QuickNotesView from './components/QuickNotesView';
 import Toast from './components/Toast';
-import { solveMathProblem, generateIllustration } from './services/geminiService';
+import { solveMathProblemStream, generateIllustration } from './services/geminiService';
 import { GoogleGenAI } from "@google/genai";
 import { Sparkles, ChevronLeft, ChevronRight, WifiOff } from 'lucide-react';
 
@@ -63,7 +63,7 @@ const KSSM_INTERMEDIATE_DATA: Record<string, { EN: string[], BM: string[] }> = {
     BM: ['Pola dan Jujukan', 'Pemfaktoran & Pecahan Algebra', 'Rumus Algebra', 'Poligon', 'Bulatan', 'Geometri Tiga Dimensi', 'Geometri Koordinat', 'Graf Fungsi', 'Laju dan Pecutan', 'Kecerunan Garis Lurus', 'Transformasi Isometri', 'Sukatan Kecenderungan Memusat', 'Kebarangkalian Mudah']
   },
   'Form 3': {
-    EN: ['Indices', 'Standard Form', 'Consumer Math (Savings)', 'Scaled Drawings', 'Trigonometric Ratios', 'Angles & Tangents', 'Angles & Tangents', 'Plans & Elevations', 'Locus in 2D', 'Straight Lines'],
+    EN: ['Indices', 'Standard Form', 'Consumer Math (Savings)', 'Scaled Drawings', 'Trigonometric Ratios', 'Angles & Tangents', 'Plans & Elevations', 'Locus in 2D', 'Straight Lines'],
     BM: ['Indeks', 'Bentuk Piawai', 'Matematik Pengguna: Simpanan...', 'Lukisan Berskala', 'Nisbah Trigonometri', 'Sudut & Tangen dalam Bulatan', 'Pelan & Dongakan', 'Lokus dalam Dua Dimensi', 'Garis Lurus']
   },
   'Form 4': {
@@ -71,8 +71,8 @@ const KSSM_INTERMEDIATE_DATA: Record<string, { EN: string[], BM: string[] }> = {
     BM: ['Fungsi & Persamaan Kuadratik', 'Asas Nombor', 'Penaakulan Logik', 'Operasi Set', 'Rangkaian dalam Teori Graf', 'Ketaksamaan Linear', 'Graf Gerakan', 'Sukatan Serakan Data Tak Terkumpul', 'Kebarangkalian Peristiwa Bergabung', 'Matematik Pengguna: Pengurusan Kewangan']
   },
   'Form 5': {
-    EN: ['Variation', 'Matrices', 'Consumer Math (Insurance)', 'Consumer Math (Taxation)', 'Congruency & Enlargement', 'Trig Functions & Graphs', 'Dispersion (Grouped)', 'Mathematical Modelling'],
-    BM: ['Ubahan', 'Matriks', 'Matematik Pengguna: Insurans', 'Matematik Pengguna: Percukaian', 'Kesebangunan, Pembesaran...', 'Nisbah dan Graf Fungsi Trigonometri', 'Sukatan Serakan Data Terkumpul', 'Pemodelan Matematik']
+    EN: ['Variation', 'Matrices', 'Consumer Math (Insurans)', 'Consumer Math (Taxation)', 'Congruency & Enlargement', 'Trig Functions & Graphs', 'Dispersion (Grouped)', 'Mathematical Modelling'],
+    BM: ['Ubahan', 'Matriks', 'Matematik Pengguna: Insurans', 'Matematik Pengguna: Percukaian', 'Kesebangunan, Pembesaran...', 'Nisbah dan Graf Fungsi Trigonometri', 'Sukatan Serakan Data Terumpul', 'Pemodelan Matematik']
   }
 };
 
@@ -87,7 +87,7 @@ const LEVEL_FOCUS_MAP: Record<UserLevel, FocusArea[]> = {
     { label: 'Space', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
     { label: 'Data Management', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
   ],
-  [UserLevel.INTERMEDIATE]: [], // Handled by KSSM_INTERMEDIATE_DATA and language toggle
+  [UserLevel.INTERMEDIATE]: [],
   [UserLevel.ADVANCED]: [
     { label: 'Calculus', color: 'bg-rose-600 text-white', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
     { label: 'Linear Algebra', color: 'bg-indigo-600 text-white', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
@@ -176,6 +176,15 @@ interface User {
   pfp: string;
 }
 
+const STORAGE_KEYS = {
+  MESSAGES: 'math_mentor_messages',
+  LEVEL: 'math_mentor_level',
+  SUBLEVEL: 'math_mentor_sublevel',
+  LANGUAGE: 'math_mentor_language',
+  CHATMODE: 'math_mentor_chatmode',
+  FOCUS_AREAS: 'math_mentor_focusareas'
+};
+
 const App: React.FC = () => {
   const [view, setView] = useState<'home' | 'app' | 'settings' | 'quicknotes'>('home');
   const [settingsTab, setSettingsTab] = useState<'account' | 'preferences'>('preferences');
@@ -194,10 +203,57 @@ const App: React.FC = () => {
   const [isFocusMinimized, setIsFocusMinimized] = useState(false);
   const [socraticEnabled, setSocraticEnabled] = useState(true);
   const [reasoningMode, setReasoningMode] = useState<'fast' | 'deep'>('deep');
-  const [chatMode, setChatMode] = useState<ChatMode | null>(null);
+  const [chatMode, setChatMode] = useState<ChatMode | null>('learning');
   const [pendingProblem, setPendingProblem] = useState<{text: string; attachment?: FileAttachment} | null>(null);
+  const [activeFocusAreas, setActiveFocusAreas] = useState<string[]>([]);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
-  // Connectivity monitoring
+  // Load state from localStorage on mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+    const savedLevel = localStorage.getItem(STORAGE_KEYS.LEVEL);
+    const savedSublevel = localStorage.getItem(STORAGE_KEYS.SUBLEVEL);
+    const savedLanguage = localStorage.getItem(STORAGE_KEYS.LANGUAGE);
+    const savedChatmode = localStorage.getItem(STORAGE_KEYS.CHATMODE);
+    const savedFocus = localStorage.getItem(STORAGE_KEYS.FOCUS_AREAS);
+
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        setMessages(parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
+      } catch (e) { console.error("Failed to load history", e); }
+    }
+    if (savedLevel) setLevel(savedLevel as UserLevel);
+    if (savedSublevel) setSubLevel(savedSublevel === 'null' ? null : savedSublevel);
+    if (savedLanguage) setLanguage(savedLanguage as Language);
+    if (savedChatmode) setChatMode(savedChatmode === 'null' ? null : savedChatmode as ChatMode);
+    if (savedFocus) {
+      try { setActiveFocusAreas(JSON.parse(savedFocus)); } catch (e) {}
+    }
+  }, []);
+
+  // Save state to localStorage on changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
+  }, [messages]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.LEVEL, level);
+    localStorage.setItem(STORAGE_KEYS.SUBLEVEL, String(subLevel));
+  }, [level, subLevel]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.LANGUAGE, language);
+  }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CHATMODE, String(chatMode));
+  }, [chatMode]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.FOCUS_AREAS, JSON.stringify(activeFocusAreas));
+  }, [activeFocusAreas]);
+
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -224,7 +280,6 @@ const App: React.FC = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Sync scroll lock for the body
   useEffect(() => {
     if (view !== 'home') {
       document.body.classList.add('no-scroll');
@@ -237,22 +292,19 @@ const App: React.FC = () => {
   const currentFocusOptions = useMemo(() => {
     if (level === UserLevel.OPENAI) return [];
     
-    // Logic for INTERMEDIATE (Secondary/KSSM) - Always stays translated when available
     if (level === UserLevel.INTERMEDIATE && subLevel && KSSM_INTERMEDIATE_DATA[subLevel]) {
       const labels = KSSM_INTERMEDIATE_DATA[subLevel][language];
       return labels.map((label, idx) => ({
         label,
         color: `${LEVEL_COLORS[idx % LEVEL_COLORS.length]} text-white shadow-sm`,
-        inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
+        inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-[#1e293b] dark:text-slate-500'
       }));
     }
 
-    // Logic for BEGINNER (Primary) - localized to BM when requested
     let options = (subLevel && SUB_LEVEL_FOCUS_MAP[subLevel]) 
       ? [...SUB_LEVEL_FOCUS_MAP[subLevel]] 
       : [...(LEVEL_FOCUS_MAP[level] || [])];
 
-    // ONLY apply localization to BEGINNER labels
     if (language === 'BM' && level === UserLevel.BEGINNER) {
       return options.map(area => ({
         ...area,
@@ -260,12 +312,8 @@ const App: React.FC = () => {
       }));
     }
 
-    // ADVANCED and others remain in original (English)
     return options;
   }, [level, subLevel, language]);
-
-  const [activeFocusAreas, setActiveFocusAreas] = useState<string[]>([]);
-  const [isDarkMode, setIsDarkMode] = useState(true);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -278,12 +326,20 @@ const App: React.FC = () => {
     setSubLevel(newSubLevel);
     setActiveFocusAreas([]);
     setMessages([]);
-    setChatMode(newLevel === UserLevel.OPENAI ? 'learning' : null);
+    setChatMode('learning'); // Default to learning as per screenshot
     setPendingProblem(null);
   };
 
   const toggleFocusArea = (label: string) => {
     setActiveFocusAreas(prev => prev.includes(label) ? prev.filter(a => a !== label) : [...prev, label]);
+  };
+
+  const handleKeySelection = async () => {
+    const isKeySelected = await (window as any).aistudio.hasSelectedApiKey();
+    if (!isKeySelected) {
+      addToast("Pro Models require a paid API key. Please select your key.", "info");
+      await (window as any).aistudio.openSelectKey();
+    }
   };
 
   const executeSolve = async (text: string, mode: ChatMode, attachment?: FileAttachment, manualImage?: string, history: Message[] = []) => {
@@ -298,32 +354,95 @@ const App: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
-    try {
-      const response = await solveMathProblem(text, history, level, mode, language, attachment, activeFocusAreas, subLevel, socraticEnabled, reasoningMode);
-      let responseText = response.text;
+    const isPro = level === UserLevel.ADVANCED || level === UserLevel.OPENAI;
+    if (isPro) {
+      await handleKeySelection();
+    }
 
-      const illustrateMatch = responseText.match(/\[ILLUSTRATE:\s*([\s\S]*?)\]/);
+    setIsLoading(true);
+    
+    // Add an initial placeholder model message for streaming
+    setMessages(prev => [...prev, {
+      role: 'model',
+      text: "",
+      timestamp: new Date()
+    }]);
+
+    try {
+      const response = await solveMathProblemStream(
+        text, 
+        history, 
+        level, 
+        mode, 
+        language, 
+        (streamedText) => {
+          setMessages(prev => {
+            const updated = [...prev];
+            if (updated.length > 0) {
+              updated[updated.length - 1] = { 
+                ...updated[updated.length - 1], 
+                text: streamedText 
+              };
+            }
+            return updated;
+          });
+        },
+        attachment, 
+        activeFocusAreas, 
+        subLevel, 
+        socraticEnabled, 
+        reasoningMode
+      );
+      
+      let finalResponseText = response.text || "";
+      const illustrateMatch = finalResponseText ? finalResponseText.match(/\[ILLUSTRATE:\s*([\s\S]*?)\]/) : null;
       let autoGeneratedImage = manualImage;
 
       if (illustrateMatch && !autoGeneratedImage) {
         const prompt = illustrateMatch[1];
-        const imgResult = await generateIllustration(prompt, '1K', false);
-        if (imgResult) autoGeneratedImage = imgResult;
-        responseText = responseText.replace(/\[ILLUSTRATE:[\s\S]*?\]/g, '');
+        try {
+          const imgResult = await generateIllustration(prompt, '1K', false);
+          if (imgResult) autoGeneratedImage = imgResult;
+          finalResponseText = finalResponseText.replace(/\[ILLUSTRATE:[\s\S]*?\]/g, '');
+        } catch (imgErr) {
+          console.warn("Auto-illustration failed", imgErr);
+        }
       }
 
-      setMessages(prev => [...prev, {
-        role: 'model',
-        text: responseText,
-        timestamp: new Date(),
-        image: autoGeneratedImage,
-        citations: response.citations,
-        error: response.isError
-      }]);
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'model', text: "Technical error processing that message.", timestamp: new Date(), error: true }]);
-      addToast("Communication error with AI service.", 'error');
+      setMessages(prev => {
+        const updated = [...prev];
+        if (updated.length > 0) {
+          updated[updated.length - 1] = {
+            role: 'model',
+            text: finalResponseText,
+            timestamp: new Date(),
+            image: autoGeneratedImage,
+            citations: response.citations,
+            error: response.isError
+          };
+        }
+        return updated;
+      });
+    } catch (error: any) {
+      console.error("Final Execution error after retries", error);
+      const message = error?.message || "";
+      const isTransient = message.includes('503') || message.includes('429') || message.includes('overloaded') || message.includes('Resource has been exhausted');
+      
+      setMessages(prev => {
+        const updated = [...prev];
+        if (updated.length > 0) {
+          updated[updated.length - 1] = { 
+            role: 'model', 
+            text: isTransient 
+              ? (language === 'BM' ? "Sistem AI sangat sibuk buat masa ini. Sila cuba lagi sebentar." : "The AI service is very busy right now. Please try again in a few moments.")
+              : (message.includes('not found') ? "API Key error. Pro models require a personal API key from a paid GCP project." : "Technical error processing that message. Please try again."), 
+            timestamp: new Date(), 
+            error: true 
+          };
+        }
+        return updated;
+      });
+      addToast("AI Service Interrupted.", 'error');
     } finally {
       setIsLoading(false);
     }
@@ -331,15 +450,16 @@ const App: React.FC = () => {
 
   const handleSendMessage = async (text: string, mode: ChatMode, attachment?: FileAttachment, manualImage?: string) => {
     const userMessage: Message = { role: 'user', text, timestamp: new Date(), attachment };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    let updatedHistory: Message[] = [];
+    
+    setMessages(prev => {
+        updatedHistory = [...prev, userMessage];
+        return updatedHistory;
+    });
 
     if (level === UserLevel.OPENAI) {
-      executeSolve(text, 'learning', attachment, manualImage, messages);
-      return;
-    }
-
-    if (!chatMode) {
+      executeSolve(text, 'learning', attachment, manualImage, updatedHistory);
+    } else if (!chatMode) {
       const normalizedText = text.trim().toLowerCase();
       const modeKeywords: Record<string, ChatMode> = { 
         'fast': 'fast', 'fast answer': 'fast',
@@ -351,31 +471,29 @@ const App: React.FC = () => {
         const selectedMode = modeKeywords[normalizedText];
         setChatMode(selectedMode);
         if (pendingProblem) {
-          executeSolve(pendingProblem.text, selectedMode, pendingProblem.attachment, undefined, newMessages);
+          executeSolve(pendingProblem.text, selectedMode, pendingProblem.attachment, undefined, updatedHistory);
           setPendingProblem(null);
         } else {
-          setMessages(prev => [...prev, { 
+          setMessages(m => [...m, { 
             role: 'model', 
             text: `Mode set to **${selectedMode.toUpperCase()}**. I'm ready for your next math challenge!`, 
             timestamp: new Date() 
           }]);
         }
-        return;
+      } else {
+        setPendingProblem({ text, attachment });
+        const promptText = language === 'BM' 
+          ? "Sila pilih mod bimbingan untuk sesi ini sebelum kita teruskan:\n\n1. **Learning**: Bimbingan langkah demi langkah\n2. **Exam**: Persediaan peperiksaan & tips\n3. **Fast Answer**: Jawapan matematik terus\n\nBalas dengan \"**Fast**\", \"**Exam**\", atau \"**Learning**\"."
+          : "Please choose a tutoring mode for this session before we continue:\n\n1. **Learning**: Step-by-step guidance\n2. **Exam**: Formal derivation & tips\n3. **Fast Answer**: Raw math only\n\nReply with \"**Fast**\", \"**Exam**\", or \"**Learning**\"." ;
+
+        setMessages(m => [...m, {
+          role: 'model',
+          text: promptText,
+          timestamp: new Date()
+        }]);
       }
-
-      setPendingProblem({ text, attachment });
-      
-      const promptText = language === 'BM' 
-        ? "Sila pilih mod bimbingan untuk sesi ini sebelum kita teruskan:\n\n1. **Learning**: Bimbingan langkah demi langkah\n2. **Exam**: Persediaan peperiksaan & tips\n3. **Fast Answer**: Jawapan matematik terus\n\nBalas dengan \"**Fast**\", \"**Exam**\", atau \"**Learning**\"."
-        : "Please choose a tutoring mode for this session before we continue:\n\n1. **Learning**: Step-by-step guidance\n2. **Exam**: Formal derivation & tips\n3. **Fast Answer**: Raw math only\n\nReply with \"**Fast**\", \"**Exam**\", or \"**Learning**\".";
-
-      setMessages(prev => [...prev, {
-        role: 'model',
-        text: promptText,
-        timestamp: new Date()
-      }]);
     } else {
-      executeSolve(text, chatMode, attachment, manualImage, messages);
+      executeSolve(text, chatMode, attachment, manualImage, updatedHistory);
     }
   };
 
@@ -392,29 +510,26 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDeleteData = () => {
+  const onDeleteData = () => {
     setMessages([]);
     setActiveFocusAreas([]);
     setUser(null);
+    setChatMode('learning');
+    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
     setView('home');
+    addToast("All session data cleared.", "success");
   };
 
   const handleSubmitFeedback = async (feedback: string, rating: number) => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
     const destinationEmail = 'ogmathmentor@gmail.com';
 
     try {
       await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `USER FEEDBACK SESSION:
-Rating: ${rating}/5 stars
-Feedback: "${feedback}"
-User Context: Level ${level}, Sublevel ${subLevel}, Language: ${language}
-Operator Email: ${destinationEmail}
-
-Analyze this feedback for the MathMentor AI app. Log sentiment and key improvements for the technical operator at ${destinationEmail}.`,
+        contents: `USER FEEDBACK SESSION:\nRating: ${rating}/5 stars\nFeedback: "${feedback}"\nUser Context: Level ${level}, Sublevel ${subLevel}, Language: ${language}`,
         config: {
-          systemInstruction: "You are a quality assurance analyst for MathMentor AI. Process user feedback and prepare a brief report for the engineering lead."
+          systemInstruction: "You are a quality assurance analyst for MathMentor AI. Process user feedback and prepare a brief report."
         }
       });
       
@@ -422,18 +537,16 @@ Analyze this feedback for the MathMentor AI app. Log sentiment and key improveme
       const body = encodeURIComponent(
         `Rating: ${rating}/5 Stars\n\n` +
         `User Feedback:\n"${feedback}"\n\n` +
-        `--- Technical Context ---\n` +
         `Learner Level: ${level}\n` +
         `Current Sub-level: ${subLevel || 'N/A'}\n` +
-        `Language: ${language}\n` +
-        `Platform: MathMentor AI WebApp`
+        `Language: ${language}`
       );
 
       window.location.href = `mailto:${destinationEmail}?subject=${subject}&body=${body}`;
 
     } catch (err) {
       console.error("Feedback Processing Error:", err);
-      addToast("Failed to process feedback automatically, but you can still send email.", 'info');
+      window.location.href = `mailto:${destinationEmail}?subject=Feedback&body=${encodeURIComponent(feedback)}`;
     }
   };
 
@@ -471,7 +584,7 @@ Analyze this feedback for the MathMentor AI app. Log sentiment and key improveme
             toggleTheme={() => setIsDarkMode(!isDarkMode)} 
             onOpenMenu={() => setIsDrawerOpen(true)} 
             onLogin={() => setIsAuthModalOpen(true)} 
-            onLogout={() => { setUser(null); setView('home'); }} 
+            onLogout={() => { setUser(null); onDeleteData(); }} 
             user={user} 
             onNavigate={handleNavigate}
             language={language}
@@ -500,28 +613,31 @@ Analyze this feedback for the MathMentor AI app. Log sentiment and key improveme
               reasoningMode={reasoningMode}
               setReasoningMode={setReasoningMode}
               onUpdateUser={handleUpdateUser}
-              onDeleteData={handleDeleteData}
+              onDeleteData={onDeleteData}
             />
           ) : view === 'quicknotes' ? (
             <QuickNotesView language={language} onBack={() => setView('app')} />
           ) : (
-            <main className="flex-1 max-w-7xl mx-auto w-full p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+            <main className="flex-1 max-w-full mx-auto w-full p-0 md:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-0 md:gap-6 overflow-hidden h-full">
+              {/* Sidebar Left: Focus Areas (Hidden on mobile) */}
               {level !== UserLevel.OPENAI && (
-                <div className={`hidden lg:flex flex-col gap-6 transition-all duration-500 ease-in-out ${isFocusMinimized ? 'lg:col-span-1' : 'lg:col-span-3'}`}>
-                  <div className={`bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 overflow-hidden h-full flex flex-col transition-all duration-500`}>
-                    <div className={`flex items-center justify-between mb-4 w-full`}>
-                      {!isFocusMinimized && <h2 className="text-sm font-bold flex items-center gap-2 tracking-tight"><Sparkles size={18} className="text-indigo-50" /> {language === 'BM' ? 'Kawasan Tumpuan' : 'Focus Areas'}</h2>}
-                      <button onClick={() => setIsFocusMinimized(!isFocusMinimized)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                        {isFocusMinimized ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                <div className={`hidden lg:flex flex-col gap-6 transition-all duration-500 ease-in-out ${isFocusMinimized ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
+                  <div className={`bg-white dark:bg-[#0f172a] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 overflow-hidden h-full flex flex-col transition-all duration-500`}>
+                    <div className={`flex items-center justify-between mb-6 w-full`}>
+                      {!isFocusMinimized && <h2 className="text-xs font-black flex items-center gap-2 tracking-[0.1em] text-slate-800 dark:text-slate-200 uppercase"><Sparkles size={16} className="text-indigo-600" /> Focus Areas</h2>}
+                      <button onClick={() => setIsFocusMinimized(!isFocusMinimized)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400">
+                        {isFocusMinimized ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
                       </button>
                     </div>
                     {!isFocusMinimized && (
-                      <div className="space-y-2 flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                      <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar">
                         {currentFocusOptions.map((area) => (
-                          <button key={area.label} onClick={() => toggleFocusArea(area.label)} className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${activeFocusAreas.includes(area.label) ? 'bg-indigo-50/30 dark:bg-indigo-900/10 border-indigo-200 dark:border-indigo-800' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}>
-                            <span className={`text-[13px] font-bold ${activeFocusAreas.includes(area.label) ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400'}`}>{area.label}</span>
-                            <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded transition-all duration-300 ${activeFocusAreas.includes(area.label) ? area.color : area.inactiveColor}`}>{activeFocusAreas.includes(area.label) ? (language === 'BM' ? 'Aktif' : 'Active') : (language === 'BM' ? 'Tidak Aktif' : 'Inactive')}</span>
-                          </button>
+                          <div key={area.label} onClick={() => toggleFocusArea(area.label)} className="group cursor-pointer">
+                            <div className="flex items-center justify-between mb-1.5">
+                               <span className={`text-[12px] font-bold ${activeFocusAreas.includes(area.label) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'} transition-colors`}>{area.label}</span>
+                               <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${activeFocusAreas.includes(area.label) ? area.color : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}`}>{activeFocusAreas.includes(area.label) ? (language === 'BM' ? 'Aktif' : 'ACTIVE') : (language === 'BM' ? 'Sedia' : 'READY')}</span>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -529,20 +645,14 @@ Analyze this feedback for the MathMentor AI app. Log sentiment and key improveme
                 </div>
               )}
 
-              <div className={`flex flex-col min-h-[500px] h-full overflow-hidden transition-all duration-500 ${level === UserLevel.OPENAI ? 'lg:col-span-9' : (isFocusMinimized ? 'lg:col-span-8' : 'lg:col-span-6')}`}>
-                <ChatInterface 
-                  messages={messages} 
-                  onSendMessage={handleSendMessage} 
-                  isLoading={isLoading} 
-                  level={level} 
-                  activeMode={chatMode} 
-                  setActiveMode={setChatMode}
-                  onError={addToast}
-                />
+              {/* Center Panes: Chat Interface (Expanded on mobile) */}
+              <div className={`flex flex-col h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:col-span-12' : (isFocusMinimized ? 'lg:col-span-8' : 'lg:col-span-7')}`}>
+                <ChatInterface messages={messages} onSendMessage={handleSendMessage} isLoading={isLoading} level={level} activeMode={chatMode} setActiveMode={setChatMode} onError={addToast} language={language} />
               </div>
 
-              <div className="lg:col-span-3 flex flex-col gap-6 overflow-hidden">
-                <ToolsPanel level={level} activeFocusAreas={activeFocusAreas} language={language} />
+              {/* Sidebar Right: Quiz Center (Hidden on mobile per request) */}
+              <div className={`hidden lg:block ${level === UserLevel.OPENAI ? 'lg:hidden' : 'lg:col-span-3'} h-full overflow-hidden`}>
+                  <ToolsPanel level={level} subLevel={subLevel} setLevel={handleLevelChange} activeFocusAreas={activeFocusAreas} toggleFocusArea={toggleFocusArea} focusOptions={currentFocusOptions} language={language} />
               </div>
             </main>
           )}
