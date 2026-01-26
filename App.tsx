@@ -527,7 +527,7 @@ const App: React.FC = () => {
     try {
       await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `USER FEEDBACK SESSION:\nRating: ${rating}/5 stars\nFeedback: "${feedback}"\nUser Context: Level ${level}, Sublevel ${subLevel}, Language: ${language}`,
+        contents: `USER FEEDBACK SESSION:\nRating: ${rating}/5 stars\nFeedback: "${feedback}"\nUser Context: Level ${level}, Sublevel ${subLevel}, Language: ${language}${user ? `\nUser: ${user.name} (${user.email})` : ''}`,
         config: {
           systemInstruction: "You are a quality assurance analyst for MathMentor AI. Process user feedback and prepare a brief report."
         }
@@ -537,6 +537,7 @@ const App: React.FC = () => {
       const body = encodeURIComponent(
         `Rating: ${rating}/5 Stars\n\n` +
         `User Feedback:\n"${feedback}"\n\n` +
+        `User: ${user?.name || 'Anonymous'} (${user?.email || 'No email'})\n` +
         `Learner Level: ${level}\n` +
         `Current Sub-level: ${subLevel || 'N/A'}\n` +
         `Language: ${language}`
@@ -570,6 +571,8 @@ const App: React.FC = () => {
         isOpen={isFeedbackModalOpen} 
         onClose={() => setIsFeedbackModalOpen(false)} 
         onSubmit={handleSubmitFeedback} 
+        user={user}
+        onSignIn={() => { setIsFeedbackModalOpen(false); setIsAuthModalOpen(true); }}
       />
 
       {view === 'home' ? (
