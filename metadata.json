@@ -1,5 +1,5 @@
 {
-  "name": "MathMentor AI",
+  "name": "OGM Mentor",
   "description": "An intelligent mathematical tutor that teaches step-by-step reasoning, explains complex formulas, and adapts its teaching style to help learners of all ages master math concepts.",
   "requestFramePermissions": [
     "camera",

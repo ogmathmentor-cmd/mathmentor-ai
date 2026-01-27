@@ -7,8 +7,7 @@ import { UserLevel, Message, FileAttachment, Quiz, ChatMode, ImageSize, Citation
 const RESPONSIVE_DIRECTIVE = `
 ### RESPONSIVENESS & FAILSAFE:
 - ALWAYS produce a response. NEVER remain silent.
-- Correctness > Speed > Detail.
-- If time is limited, prioritize the final answer over detailed explanations.
+- Prioritize immediate streaming. Do not pause for long thinking steps.
 `;
 
 const MATH_WORKING_RULES = `
@@ -17,113 +16,60 @@ const MATH_WORKING_RULES = `
 2. EACH mathematical move MUST be on a NEW LINE.
 3. Use simple mathematical notation in LaTeX ($...$ or $$...$$).
 4. Do NOT combine multiple steps into one line.
-5. Do NOT write paragraphs for calculations.
-6. The FINAL ANSWER must be on its own line and clearly labeled.
-
-STANDARD STRUCTURE:
-- State formula/relationship
-- Substitution line
-- Simplification (line-by-line)
-- Final answer
-`;
-
-const INTERMEDIATE_ADD_MATH_DIRECTIVE = `
-### INTERMEDIATE MODE: ADDITIONAL MATHEMATICS (KSSM MALAYSIA)
-You operate as a specialized Mathematics AI Tutor for Malaysian KSSM Additional Mathematics (Form 4 & 5 only).
-
-#### SCOPE (FORM 4 – TINGKATAN 4):
-1. Functions (Fungsi), 2. Quadratic Functions (Fungsi Kuadratik), 3. Systems of Linear Equations (Sistem Persamaan Linear), 4. Indices, Surds and Logarithms (Indeks, Bentuk Piawai, Surd dan Logaritma), 5. Arithmetic and Geometric Progressions (Jujukan Aritmetik dan Jujukan Geometri), 6. Linear Law (Hukum Linear), 7. Coordinate Geometry (Geometri Koordinat), 8. Vectors (Vektor), 9. Solution of Triangles (Penyelesaian Segi Tiga), 10. Index Numbers (Nombor Indeks).
-
-#### SCOPE (FORM 5 – TINGKATAN 5):
-11. Circular Measure (Ukuran Bulatan), 12. Coordinate Geometry – Advanced (Geometri Koordinat Lanjutan), 13. Vectors – Advanced (Vektor Lanjutan), 14. Trigonometric Functions (Fungsi Trigonometri), 15. Differentiation (Pembezaan), 16. Integration (Pengamiran), 17. Permutation and Combination (Penyusunan dan Gabungan), 18. Probability Distribution (Taburan Kebarangkalian), 19. Linear Programming (Pengaturcaraan Linear), 20. Kinematics of Linear Motion (Kinematik Gerakan Linear).
-
-#### RULES:
-- Answer ONLY based on the chapters listed above.
-- Match difficulty strictly to Form 4–Form 5 Additional Mathematics (SPM) level.
-- Use correct mathematical notation and symbols.
-- Provide clear, logical step-by-step workings when solving problems.
-- Do not simplify concepts to primary or lower secondary level.
-- If a question is outside the listed chapters, strictly respond:
-  "Topik ini berada di luar skop Intermediate (Matematik Tambahan Tingkatan 4 dan 5)."
-
-#### TEACHING BEHAVIOUR:
-- When asked to explain, teach using structured steps and examples.
-- When asked to solve, show full mathematical working.
-- When correcting a student, explain the mistake and show the correct method.
-- Encourage SPM Additional Mathematics exam-style thinking.
-`;
-
-const BM_TRANSLATION_RULES = `
-### KSSM BM TRANSLATION & TERMINOLOGY RULES (APPLY WHEN LANGUAGE IS BM):
-1. LANGUAGE: Use formal, clear, textbook-style Bahasa Melayu (BM) suitable for KSSM students.
-2. MATH PRESERVATION: Do NOT change numbers, symbols, matrices, variables, or LaTeX formatting.
-3. TERMINOLOGY:
-   - Matrix -> Matriks
-   - Given -> Diberi
-   - Determine/Find -> Tentukan/Cari
-   - Product -> Hasil darab
-   - Hence -> Oleh itu
-   - Value -> Nilai
-4. FORMAT: Preserve question numbering and multiple-choice labels (A, B, C, D).
+5. The FINAL ANSWER must be on its own line and clearly labeled.
 `;
 
 const SYSTEM_PROMPT_CORE = `
 ### MATHMENTOR AI DIRECTIVE
-You are a professional, friendly human-like math tutor and translator. Your goal is to ensure the user gets a correct answer they can actually understand.
+You are a professional, friendly human-like math tutor. Your goal is to ensure the user gets a correct answer they can actually understand.
 
 ### CONSTRAINTS:
 - Language: [LANGUAGE_TOKEN]. 
 - Math: ALWAYS use LaTeX ($...$ or $$...$$).
 - Preservation: Do NOT translate variables/formulas.
-- Standards: KSSM/SPM textbook style for BM mode.
 ${MATH_WORKING_RULES}
 ${RESPONSIVE_DIRECTIVE}
 `;
 
+const ADD_MATH_SPECIAL_DIRECTIVE = `
+### ADDITIONAL MATHEMATICS SPECIALIST PERSONA:
+- You are an expert teacher for SPM Additional Mathematics (Form 4 & 5).
+- Syllabus: Malaysian KSSM Additional Mathematics.
+- Tone: Encouraging, precise, and exam-focused.
+`;
+
+const ESSENTIAL_MATH_DIRECTIVE = `
+### MMU ESSENTIAL MATHEMATICS SPECIALIST (SYLLABUS CH 1-6):
+You are tutoring a student using the Multimedia University (MMU) Essential Mathematics curriculum. You MUST strictly follow the methodology found in their slide chapters.
+
+### MMU CHAPTER-SPECIFIC METHODS:
+1. **CH 1: ALGEBRA**: 
+   - Rationalize denominators using the Conjugate Method (multiply by $\sqrt{a} \pm \sqrt{b}$).
+   - Solve quadratics using "Completing the Square" primarily.
+2. **CH 3: MATRICES**:
+   - $3 \times 3$ INVERSE MUST follow: Minor Matrix ($M$) -> Cofactor Matrix ($C$) -> Adjoint ($C^T$) -> Determinant ($|A|$) -> $A^{-1} = \frac{1}{|A|} adj(A)$.
+   - Use Inverse Method ($X = A^{-1}B$) for systems.
+3. **CH 5/6: CALCULUS**: 
+   - Rules: Power, Product ($uv' + vu'$), Quotient ($\frac{vu' - uv'}{v^2}$), and Chain Rule.
+   - Integration: Always include $+ c$ and show u-substitution steps clearly ($u=...$, $du=...$).
+
+### STYLE:
+- Match the visual "Solution" style of MMU slides: Clear line-by-line working with bold headers for steps.
+`;
+
 const MODE_INSTRUCTIONS: Record<ChatMode, string> = {
   learning: `MODE: LEARNING. 
-### FORMATTING FOR LEARNING:
-1. ### 💡 THE BIG IDEA
-A single, non-technical sentence explaining the "Big Idea."
-
-2. ### 🛠️ THE STEP-BY-STEP
-Full step-by-step working. Use the format:
-**Step [N]: [Action Goal]**
-(Calculation - One move per line)
-$$...$$
-$$...$$
-*Short tip or caution.*
-
-3. ### 🧠 THE ANALOGY
-A real-world comparison (e.g., a balanced scale, fruit baskets).
-
-4. ### ✅ QUICK CHECK
-A small, friendly question for the student.
-
-STRICT: Use double line breaks between sections. Keep explanations punchy.`,
+1. ### 💡 THE BIG IDEA: One simple sentence explanation.
+2. ### 🛠️ THE STEP-BY-STEP: Full working, one move per line.
+3. ### 🧠 THE ANALOGY: A simple comparison.
+4. ### ✅ QUICK CHECK: One question for the student.`,
 
   exam: `MODE: EXAM. 
-- Focus on formal steps and precision.
-- Include "Marking Tips" or pitfall warnings.
-- Working shown clearly line-by-line.
-- Minimal conversational filler.`,
+- Focus on formal derivation and precision.
+- Include "Marking Tips" or pitfall warnings.`,
 
   fast: `MODE: FAST ANSWER.
-STRICT FORMATTING RULES:
-1. Output ONLY LaTeX mathematical working.
-2. EACH step MUST be on a new line.
-3. Use display math format ($$ ... $$) for EVERY equation/line.
-4. Do NOT wrap steps in brackets [ ].
-5. Do NOT use \\begin{array}, \\begin{aligned}, or \\begin{cases} environments.
-6. Do NOT include any explanations, words, text, or symbols outside the LaTeX equations.
-7. Do NOT include labels or headers (e.g., no "Answer:", no "Step 1").
-8. The final simplified answer must be the LAST line of equations.
-9. No punctuation outside the LaTeX delimiters.
-
-Example of valid FAST output:
-$$2x + 5 = 15$$
-$$2x = 10$$
-$$x = 5$$`
+STRICT: Output ONLY LaTeX math steps ($$ ... $$) and the final answer. No words.`
 };
 
 export interface MathResponse {
@@ -132,75 +78,22 @@ export interface MathResponse {
   isError?: boolean;
 }
 
-const cleanJsonResponse = (text: string): string => {
-  return text.replace(/```json/g, "").replace(/```/g, "").trim();
-};
-
 const handleApiError = (error: any, language: Language): string => {
-  console.error("Gemini API Error Detail:", error);
-  let status = error?.status || error?.error?.code || 0;
-  const message = error?.message || "";
-  
-  if (typeof message === 'string' && message.includes('{')) {
-    try {
-      const parsed = JSON.parse(message);
-      const innerError = parsed?.error || parsed;
-      if (innerError?.code) status = innerError.code;
-    } catch (e) {}
-  }
-
-  const isOverloaded = status === 503 || status === 504 || message.includes('503') || message.includes('overloaded') || message.includes('UNAVAILABLE');
-  const isRateLimited = status === 429 || message.includes('429');
-  const isKeyError = status === 404 || status === 401 || message.includes('not found') || message.includes('key');
-
-  if (isOverloaded) return language === 'BM' ? "Pelayan sedang sibuk. Kami sedang cuba menghubungkan anda semula (Ralat 503)." : "The AI is a bit busy right now. We're retrying to get you an answer (Error 503).";
-  if (isRateLimited) return language === 'BM' ? "Had penggunaan dicapai. Sila tunggu sebentar (Ralat 429)." : "Rate limit reached. Please wait a moment (Error 429).";
-  if (isKeyError) return language === 'BM' ? "Masalah Kunci API. Sila pilih Kunci API anda." : "API Key issue. Please select your API Key.";
-  return language === 'BM' ? `Ralat teknikal (${status || 'Unknown'}). Sila cuba sebentar lagi.` : `Technical error (${status || 'Unknown'}). Please try again.`;
+  console.error("Gemini API Error:", error);
+  return language === 'BM' ? "Sistem AI sedang sibuk. Sila cuba lagi sebentar." : "The AI is currently busy. Please try again in a few moments.";
 };
 
-async function withRetry<T>(fn: () => Promise<T>, retries = 5, delay = 2000): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1500): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
-    let status = error?.status || 0;
-    const message = error?.message || "";
-
-    if (status === 0 && message.includes('{')) {
-      try {
-        const parsed = JSON.parse(message);
-        status = parsed?.error?.code || status;
-      } catch (e) {}
-    }
-
-    const isTransient = status === 503 || status === 504 || status === 429 ||
-                        message.includes('503') || message.includes('overloaded') ||
-                        message.includes('UNAVAILABLE') || message.includes('deadline') ||
-                        message.includes('Resource has been exhausted');
-
-    if (retries > 0 && isTransient) {
-      console.warn(`Transient error (Status: ${status}). Retrying... Attempts left: ${retries}`);
+    if (retries > 0) {
       await new Promise(resolve => setTimeout(resolve, delay));
       return withRetry(fn, retries - 1, delay * 1.5);
     }
     throw error;
   }
 }
-
-const getFullSystemInstruction = (level: UserLevel, mode: ChatMode, language: Language) => {
-  let instruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
-  
-  if (language === 'BM') {
-    instruction += `\n${BM_TRANSLATION_RULES}`;
-  }
-
-  if (level === UserLevel.INTERMEDIATE) {
-    instruction += `\n${INTERMEDIATE_ADD_MATH_DIRECTIVE}`;
-  }
-  
-  instruction += `\n${MODE_INSTRUCTIONS[mode]}`;
-  return instruction;
-};
 
 export const solveMathProblemStream = async (
   problem: string,
@@ -220,31 +113,46 @@ export const solveMathProblemStream = async (
   
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    let modelName = 'gemini-3-flash-preview';
-    let thinkingBudget = 0;
-    if (mode === 'fast') {
-      modelName = 'gemini-3-flash-preview';
-    } else if (reasoningMode === 'deep') {
-      if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) {
-        modelName = 'gemini-3-pro-preview';
-        thinkingBudget = 8000;
-      } else {
-        modelName = 'gemini-3-flash-preview';
-        thinkingBudget = 4000;
-      }
-    }
+    
+    // FIX: All levels now use Flash model with 0 thinking budget for instant streaming
+    const modelName = 'gemini-3-flash-preview';
+    const thinkingBudget = 0; 
+    const maxOutputTokens = 4096;
+
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.text }]
     }));
-    const currentParts: any[] = [{ text: `Context: ${level} | Focus: ${focusAreas?.join(', ') || 'Math'}\nInput: ${problem}` }];
+    
+    const currentParts: any[] = [{ text: `
+[CONTEXT]
+Level: ${level}
+Sub-Level: ${subLevel || 'N/A'}
+Active Focus Areas (MMU): ${focusAreas?.join(', ') || 'General Math'}
+
+[USER QUERY]
+${problem}
+` }];
+
     if (attachment) currentParts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
     contents.push({ role: 'user', parts: currentParts });
 
+    let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
+    
+    // Dynamic syllabus selection
+    if (subLevel?.toLowerCase().includes('essential mathematics')) {
+      systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
+    } else if (subLevel?.toLowerCase().includes('add math')) {
+      systemInstruction += `\n${ADD_MATH_SPECIAL_DIRECTIVE}`;
+    }
+    
+    systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
+
     const config: any = {
-      systemInstruction: getFullSystemInstruction(level, mode, language),
+      systemInstruction,
       temperature: mode === 'fast' ? 0.0 : 0.2,
-      tools: (mode === 'fast') ? [] : [{ googleSearch: {} }],
+      maxOutputTokens,
+      tools: (level === UserLevel.OPENAI) ? [{ googleSearch: {} }] : [],
     };
     if (thinkingBudget > 0) config.thinkingConfig = { thinkingBudget };
 
@@ -288,40 +196,28 @@ export const solveMathProblem = async (
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    let modelName = 'gemini-3-flash-preview';
-    let thinkingBudget = 0;
-    if (mode === 'fast') {
-      modelName = 'gemini-3-flash-preview';
-    } else if (reasoningMode === 'deep') {
-      if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) {
-        modelName = 'gemini-3-pro-preview';
-        thinkingBudget = 8000;
-      } else {
-        modelName = 'gemini-3-flash-preview';
-        thinkingBudget = 4000;
-      }
-    }
+    const modelName = 'gemini-3-flash-preview';
+    
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.text }]
     }));
-    const currentParts: any[] = [{ text: `Context: ${level} | Focus: ${focusAreas?.join(', ') || 'Math'}\nInput: ${problem}` }];
+    const currentParts: any[] = [{ text: `Profile: ${level} | Sub: ${subLevel}\nQuery: ${problem}` }];
     if (attachment) currentParts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
     contents.push({ role: 'user', parts: currentParts });
-    const config: any = {
-      systemInstruction: getFullSystemInstruction(level, mode, language),
-      temperature: mode === 'fast' ? 0.0 : 0.2,
-      tools: (mode === 'fast') ? [] : [{ googleSearch: {} }],
-    };
-    if (thinkingBudget > 0) config.thinkingConfig = { thinkingBudget };
-    const response = await ai.models.generateContent({ model: modelName, contents, config });
-    const citations: Citation[] = [];
-    if (response.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-      for (const chunk of response.candidates[0].groundingMetadata.groundingChunks) {
-        if (chunk.web) citations.push({ title: chunk.web.title || 'Source', uri: chunk.web.uri });
-      }
+
+    let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
+    if (subLevel?.toLowerCase().includes('essential mathematics')) {
+      systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
     }
-    return { text: response.text || "", citations, isError: false };
+    systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
+
+    const response = await ai.models.generateContent({ 
+      model: modelName, 
+      contents, 
+      config: { systemInstruction, temperature: 0.2, maxOutputTokens: 4096 } 
+    });
+    return { text: response.text || "", citations: [], isError: false };
   };
   try {
     return await withRetry(executeCall);
@@ -335,15 +231,12 @@ export const generateStudyNotes = async (files: FileAttachment[], language: Lang
   if (!key) return "API Key missing.";
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    const parts: any[] = [{ text: "Perform an exhaustive deep scan of all provided materials, especially large documents. Synthesize the core concepts into a COMPACT, high-density study master sheet. Your goal is to capture the complete essence of these materials in the most efficient, simplified format possible. Prioritize brevity, critical formulas, and logical connections between multiple files." }];
+    const parts: any[] = [{ text: "Synthesize core concepts into a compact study sheet." }];
     files.forEach(f => parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } }));
     const res = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts }],
-      config: {
-        systemInstruction: "You are a master mathematical synthesizer. Create an EFFICIENT, COMPACT, and COMPLETE study sheet from the provided sources, regardless of their size. Use high-density information mapping. Highlight critical formulas in display math. Hierarchy: Concept -> Definition -> Formula -> One-line Example. Language: " + language,
-        thinkingConfig: { thinkingBudget: 8000 }
-      }
+      config: { systemInstruction: "Create a compact study sheet. Language: " + language }
     });
     return res.text || "";
   };
@@ -357,76 +250,48 @@ export const generateStudyNotes = async (files: FileAttachment[], language: Lang
 export const generateIllustration = async (prompt: string, size: ImageSize = '1K', isManualHighRes = false): Promise<string | null> => {
   const key = process.env.API_KEY;
   if (!key) return null;
-  const executeCall = async () => {
-    const ai = new GoogleGenAI({ apiKey: key });
-    const model = isManualHighRes ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
-    const res = await ai.models.generateContent({
-      model,
-      contents: { parts: [{ text: `Minimal math diagram: ${prompt}` }] },
-      config: { imageConfig: { aspectRatio: "1:1", ...(model === 'gemini-3-pro-image-preview' ? { imageSize: size } : {}) } }
-    });
-    const part = res.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-    return part ? `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` : null;
-  };
-  try {
-    return await withRetry(executeCall);
-  } catch {
-    return null;
-  }
+  const ai = new GoogleGenAI({ apiKey: key });
+  const model = 'gemini-2.5-flash-image';
+  const res = await ai.models.generateContent({
+    model,
+    contents: { parts: [{ text: `Minimal math diagram: ${prompt}` }] },
+    config: { imageConfig: { aspectRatio: "1:1" } }
+  });
+  const part = res.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+  return part ? `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` : null;
 };
 
 export const generateQuiz = async (topic: string, level: UserLevel, language: Language, difficulty: QuizDifficulty = 'medium', focusAreas?: string[]): Promise<Quiz> => {
   const key = process.env.API_KEY;
   if (!key) throw new Error("API Key missing.");
-  const executeCall = async () => {
-    const ai = new GoogleGenAI({ apiKey: key });
-    
-    const difficultyDirectives: Record<QuizDifficulty, string> = {
-      easy: "Focus on basic definitions and single-operation problems. High accessibility.",
-      medium: "Include multi-step calculations and common application scenarios. Standard textbook level.",
-      hard: "Use complex multi-stage problems, obscure edge cases, and high-order thinking requirements.",
-      adaptive: "Start easy and progress towards very challenging concepts within the quiz set."
-    };
-
-    const res = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty.toUpperCase()} math quiz on the following topic: ${topic}. Focus areas: ${focusAreas?.join(', ') || 'General'}.` }] }],
-      config: {
-        systemInstruction: `Generate a high-quality math quiz in ${language}. 
-        STRICT DIFFICULTY RULE: ${difficultyDirectives[difficulty]}
-        Learner Context: ${level}.
-        ${language === 'BM' ? BM_TRANSLATION_RULES : ''}
-        ${level === UserLevel.INTERMEDIATE ? INTERMEDIATE_ADD_MATH_DIRECTIVE : ''}
-        ALWAYS use LaTeX for all math formulas and values.
-        Output JSON matching quiz schema.`,
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            questions: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  question: { type: Type.STRING },
-                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  correctAnswerIndex: { type: Type.INTEGER },
-                  explanation: { type: Type.STRING }
-                },
-                required: ["question", "options", "correctAnswerIndex", "explanation"]
-              }
+  const ai = new GoogleGenAI({ apiKey: key });
+  const res = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}.` }] }],
+    config: {
+      systemInstruction: `Generate a math quiz in ${language} for ${level}. Output JSON.`,
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING },
+          questions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                question: { type: Type.STRING },
+                options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                correctAnswerIndex: { type: Type.INTEGER },
+                explanation: { type: Type.STRING }
+              },
+              required: ["question", "options", "correctAnswerIndex", "explanation"]
             }
-          },
-          required: ["title", "questions"]
-        }
+          }
+        },
+        required: ["title", "questions"]
       }
-    });
-    return JSON.parse(cleanJsonResponse(res.text || "{}"));
-  };
-  try {
-    return await withRetry(executeCall);
-  } catch (error) {
-    throw new Error(handleApiError(error, language));
-  }
+    }
+  });
+  return JSON.parse(res.text || "{}");
 };

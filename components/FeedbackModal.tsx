@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { X, MessageSquare, Send, Loader2, Star, CheckCircle2, Mail, Lock, LogIn } from 'lucide-react';
+import { X, MessageSquare, Mail, Star, ChevronRight, Lock, LogIn } from 'lucide-react';
 
 interface FeedbackModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (feedback: string, rating: number) => Promise<void>;
+  onSubmit: (feedback: string, rating: number) => void;
   user: { name: string; email: string; pfp: string } | null;
   onSignIn: () => void;
 }
@@ -13,36 +13,23 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
 
-  // Global operator destination
   const operatorEmail = 'ogmathmentor@gmail.com';
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendGmail = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!feedback.trim() || isSubmitting || !user) return;
+    if (!feedback.trim() || !user) return;
 
-    setIsSubmitting(true);
-    try {
-      await onSubmit(feedback, rating);
-      setIsSuccess(true);
-      setTimeout(() => {
-        onClose();
-        // Reset after close animation
-        setTimeout(() => {
-          setIsSuccess(false);
-          setFeedback('');
-          setRating(0);
-        }, 300);
-      }, 3500);
-    } catch (error) {
-      console.error("Feedback failed", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    const subject = `MathMentor Feedback: ${rating} Stars from ${user.name}`;
+    const body = `FEEDBACK REPORT\n---------------------------\nRating: ${rating}/5 Stars\nUser: ${user.name} (${user.email})\n\nMessage:\n"${feedback}"\n---------------------------`;
+    
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(operatorEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    window.open(gmailUrl, '_blank');
+    onSubmit(feedback, rating);
+    onClose();
   };
 
   return (
@@ -60,12 +47,11 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
                 <MessageSquare size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Operator Feedback</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">RECIPIENT: {operatorEmail.toUpperCase()}</p>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Give Feedback</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Help us improve MathMentor</p>
               </div>
             </div>
             <button 
-              type="button"
               onClick={onClose}
               className="p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
             >
@@ -74,39 +60,26 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
           </div>
 
           {!user ? (
-            <div className="py-10 text-center flex flex-col items-center justify-center space-y-6 animate-in fade-in duration-500">
+            <div className="py-10 text-center flex flex-col items-center justify-center space-y-6">
               <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 rounded-3xl flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700">
                 <Lock size={40} />
               </div>
               <div className="space-y-2">
-                <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Identity Required</h4>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-[280px] mx-auto">
-                  To maintain high-quality communication, feedback can only be sent by registered scholars.
-                </p>
+                <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Sign In Required</h4>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-[280px] mx-auto">Please sign in to send feedback to our developers.</p>
               </div>
               <button
                 onClick={onSignIn}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95"
+                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-3 active:scale-95"
               >
                 <LogIn size={20} />
                 Sign In to Continue
               </button>
             </div>
-          ) : isSuccess ? (
-            <div className="py-10 text-center flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-500">
-              <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-3xl flex items-center justify-center mb-6 animate-bounce">
-                <CheckCircle2 size={48} />
-              </div>
-              <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-2">Opening Gmail...</h3>
-              <p className="text-slate-500 dark:text-slate-400 font-medium mb-4">Your report has been prepared for <strong>{operatorEmail}</strong>.</p>
-              <div className="px-4 py-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 flex items-center gap-2 text-[10px] font-black uppercase text-slate-400">
-                <Mail size={12} /> Redirecting to Gmail
-              </div>
-            </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6 animate-in fade-in duration-500">
+            <form onSubmit={handleSendGmail} className="space-y-6">
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">OVERALL EXPERIENCE</label>
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Rating</label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -121,20 +94,20 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
                           : 'text-slate-200 dark:text-slate-800'
                       }`}
                     >
-                      <Star size={28} fill={(hoverRating || rating) >= star ? "currentColor" : "none"} />
+                      <Star size={32} fill={(hoverRating || rating) >= star ? "currentColor" : "none"} />
                     </button>
                   ))}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">YOUR MESSAGE</label>
+                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Message</label>
                 <textarea
                   required
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="What can we improve? Your thoughts will open in Gmail pre-filled for our team."
-                  className="w-full h-32 px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all resize-none text-slate-900 dark:text-white placeholder:text-slate-400"
+                  placeholder="What's on your mind?..."
+                  className="w-full h-40 px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all resize-none text-slate-900 dark:text-white placeholder:text-slate-400 leading-relaxed"
                 />
               </div>
 
@@ -149,11 +122,12 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
 
                 <button
                   type="submit"
-                  disabled={!feedback.trim() || isSubmitting}
+                  disabled={!feedback.trim() || rating === 0}
                   className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95"
                 >
-                  {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
-                  Open Gmail to Send
+                  <Mail size={20} />
+                  Send via Gmail
+                  <ChevronRight size={18} />
                 </button>
               </div>
             </form>

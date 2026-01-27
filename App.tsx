@@ -59,25 +59,25 @@ const KSSM_INTERMEDIATE_DATA: Record<string, { EN: string[], BM: string[] }> = {
   },
   'Form 2': {
     EN: ['Patterns and Sequences', 'Factorisation & Fractions', 'Algebraic Formulae', 'Polygons', 'Circles', '3D Geometry', 'Coordinate Geometry', 'Graphs and Functions', 'Motion (Speed/Acc.)', 'Gradient', 'Transformations', 'Central Tendency', 'Simple Probability'],
-    BM: ['Pola dan Jujukan', 'Pemfaktoran & Pecahan Algebra', 'Rumus Algebra', 'Poligon', 'Bulatan', 'Geometri Tiga Dimensi', 'Geometri Koordinat', 'Graf Fungsi', 'Laju dan Pecutan', 'Kecerunan Garis Lurus', 'Transformasi Isometri', 'Sukatan Kecenderungan Memusat', 'Kebarangkalian Mudah']
+    BM: ['Pola dan Jujukan', 'Pemfaktoran & Pecahan Algebra', 'Rumus Algebra', 'Poligon', 'Bulatan', 'Geometri Tiga Dimensi', 'Geometri Koordinat', 'Graf Fungsi', 'Laju dan Pecutan', 'Kecerunan Geris Lurus', 'Transformasi Isometri', 'Sukatan Kecenderungan Memusat', 'Kebarangkalian Mudah']
   },
   'Form 3': {
     EN: ['Indices', 'Standard Form', 'Consumer Math (Savings)', 'Scaled Drawings', 'Trigonometric Ratios', 'Angles & Tangents', 'Plans & Elevations', 'Locus in 2D', 'Straight Lines'],
     BM: ['Indeks', 'Bentuk Piawai', 'Matematik Pengguna: Simpanan...', 'Lukisan Berskala', 'Nisbah Trigonometri', 'Sudut & Tangen dalam Bulatan', 'Pelan & Dongakan', 'Lokus dalam Dua Dimensi', 'Garis Lurus']
   },
   'Form 4': {
-    EN: ['Quadratic Functions', 'Number Bases', 'Logical Reasoning', 'Set Operations', 'Graph Theory', 'Linear Inequalities', 'Motion Graphs', 'Dispersion (Ungrouped)', 'Combined Probability', 'Financial Management'],
+    EN: ['Quadratic Functions', 'Number Fundamentals', 'Logical Reasoning', 'Set Operations', 'Graph Theory', 'Linear Inequalities', 'Motion Graphs', 'Dispersion (Ungrouped)', 'Combined Probability', 'Consumer Math (Finance)'],
     BM: ['Fungsi & Persamaan Kuadratik', 'Asas Nombor', 'Penaakulan Logik', 'Operasi Set', 'Rangkaian dalam Teori Graf', 'Ketaksamaan Linear', 'Graf Gerakan', 'Sukatan Serakan Data Tak Terkumpul', 'Kebarangkalian Peristiwa Bergabung', 'Matematik Pengguna: Pengurusan Kewangan']
   },
   'Form 5': {
-    EN: ['Variation', 'Matrices', 'Insurance', 'Taxation', 'Congruency & Enlargement', 'Trig Functions', 'Dispersion (Grouped)', 'Mathematical Modelling'],
-    BM: ['Ubahan', 'Matriks', 'Matematik Pengguna: Insurans', 'Matematik Pengguna: Percukaian', 'Kesebangunan, Pembesaran dan Transformasi', 'Nisbah dan Graf Fungsi Trigonometri', 'Sukatan Serakan Data Terumpul', 'Pemodelan Matematik']
+    EN: ['Variation', 'Matrices', 'Consumer Math (Insurans)', 'Consumer Math (Taxation)', 'Congruency & Enlargement', 'Trig Functions & Graphs', 'Dispersion (Grouped)', 'Mathematical Modelling'],
+    BM: ['Ubahan', 'Matriks', 'Matematik Pengguna: Insurans', 'Matematik Pengguna: Percukaian', 'Kesebangunan, Pembesaran...', 'Nisbah dan Graf Fungsi Trigonometri', 'Sukatan Serakan Data Terumpul', 'Pemodelan Matematik']
   },
-  'Form 4(+Math)': {
+  'Form 4 (Add Math)': {
     EN: ['Functions', 'Quadratic Functions', 'Systems of Linear Equations', 'Indices, Surds and Logarithms', 'Arithmetic and Geometric Progressions', 'Linear Law', 'Coordinate Geometry', 'Vectors', 'Solution of Triangles', 'Index Numbers'],
-    BM: ['Fungsi', 'Fungsi Kuadratik', 'Sistem Persamaan Linear', 'Indeks, Bentuk Piawai, Surd dan Logaritma', 'Jujukan Aritmetik dan Jujukan Geometri', 'Hukum Linear', 'Geometri Koordinat', 'Vektor', 'Penyelesaian Segi Tiga', 'Nombor Indeks']
+    BM: ['Fungsi', 'Fungsi Kuadratik', 'Sistem Persamaan Linear', 'Indeks, Surd dan Logaritma', 'Jujukan Aritmetik dan Geometri', 'Hukum Linear', 'Geometri Koordinat', 'Vektor', 'Penyelesaian Segi Tiga', 'Nombor Indeks']
   },
-  'Form 5(+Math)': {
+  'Form 5 (Add Math)': {
     EN: ['Circular Measure', 'Coordinate Geometry – Advanced', 'Vectors – Advanced', 'Trigonometric Functions', 'Differentiation', 'Integration', 'Permutation and Combination', 'Probability Distribution', 'Linear Programming', 'Kinematics of Linear Motion'],
     BM: ['Ukuran Bulatan', 'Geometri Koordinat Lanjutan', 'Vektor Lanjutan', 'Fungsi Trigonometri', 'Pembezaan', 'Pengamiran', 'Penyusunan dan Gabungan', 'Taburan Kebarangkalian', 'Pengaturcaraan Linear', 'Kinematik Gerakan Linear']
   }
@@ -95,12 +95,7 @@ const LEVEL_FOCUS_MAP: Record<UserLevel, FocusArea[]> = {
     { label: 'Data Management', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
   ],
   [UserLevel.INTERMEDIATE]: [],
-  [UserLevel.ADVANCED]: [
-    { label: 'Calculus', color: 'bg-rose-600 text-white', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Linear Algebra', color: 'bg-indigo-600 text-white', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Differential Eq.', color: 'bg-amber-600 text-white', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Discrete Math', color: 'bg-emerald-600 text-white', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-  ],
+  [UserLevel.ADVANCED]: [],
   [UserLevel.OPENAI]: []
 };
 
@@ -189,7 +184,8 @@ const STORAGE_KEYS = {
   SUBLEVEL: 'math_mentor_sublevel',
   LANGUAGE: 'math_mentor_language',
   CHATMODE: 'math_mentor_chatmode',
-  FOCUS_AREAS: 'math_mentor_focusareas'
+  FOCUS_AREAS: 'math_mentor_focusareas',
+  USER_SESSION: 'math_mentor_user_session'
 };
 
 const App: React.FC = () => {
@@ -223,6 +219,7 @@ const App: React.FC = () => {
     const savedLanguage = localStorage.getItem(STORAGE_KEYS.LANGUAGE);
     const savedChatmode = localStorage.getItem(STORAGE_KEYS.CHATMODE);
     const savedFocus = localStorage.getItem(STORAGE_KEYS.FOCUS_AREAS);
+    const savedUser = localStorage.getItem(STORAGE_KEYS.USER_SESSION);
 
     if (savedMessages) {
       try {
@@ -236,6 +233,9 @@ const App: React.FC = () => {
     if (savedChatmode) setChatMode(savedChatmode === 'null' ? null : savedChatmode as ChatMode);
     if (savedFocus) {
       try { setActiveFocusAreas(JSON.parse(savedFocus)); } catch (e) {}
+    }
+    if (savedUser) {
+      try { setUser(JSON.parse(savedUser)); } catch (e) {}
     }
   }, []);
 
@@ -260,6 +260,14 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.FOCUS_AREAS, JSON.stringify(activeFocusAreas));
   }, [activeFocusAreas]);
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.USER_SESSION);
+    }
+  }, [user]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -299,7 +307,8 @@ const App: React.FC = () => {
   const currentFocusOptions = useMemo(() => {
     if (level === UserLevel.OPENAI) return [];
     
-    if (level === UserLevel.INTERMEDIATE && subLevel && KSSM_INTERMEDIATE_DATA[subLevel]) {
+    // Check if subLevel corresponds to KSSM/Add Math data
+    if (subLevel && KSSM_INTERMEDIATE_DATA[subLevel]) {
       const labels = KSSM_INTERMEDIATE_DATA[subLevel][language];
       return labels.map((label, idx) => ({
         label,
@@ -308,6 +317,7 @@ const App: React.FC = () => {
       }));
     }
 
+    // Default to mapped focus areas for standard levels
     let options = (subLevel && SUB_LEVEL_FOCUS_MAP[subLevel]) 
       ? [...SUB_LEVEL_FOCUS_MAP[subLevel]] 
       : [...(LEVEL_FOCUS_MAP[level] || [])];
@@ -333,7 +343,7 @@ const App: React.FC = () => {
     setSubLevel(newSubLevel);
     setActiveFocusAreas([]);
     setMessages([]);
-    setChatMode('learning'); // Default to learning as per screenshot
+    setChatMode('learning'); 
     setPendingProblem(null);
   };
 
@@ -527,36 +537,18 @@ const App: React.FC = () => {
     addToast("All session data cleared.", "success");
   };
 
-  const handleSubmitFeedback = async (feedback: string, rating: number) => {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
-    const destinationEmail = 'ogmathmentor@gmail.com';
+  const handleLogout = () => {
+    setUser(null);
+    setMessages([]);
+    setActiveFocusAreas([]);
+    setChatMode('learning');
+    localStorage.removeItem(STORAGE_KEYS.USER_SESSION);
+    setView('home');
+    addToast("Logged out successfully.", "success");
+  };
 
-    try {
-      await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `USER FEEDBACK SESSION:\nRating: ${rating}/5 stars\nFeedback: "${feedback}"\nUser Context: Level ${level}, Sublevel ${subLevel}, Language: ${language}${user ? `\nUser: ${user.name} (${user.email})` : ''}`,
-        config: {
-          systemInstruction: "You are a quality assurance analyst for MathMentor AI. Process user feedback and prepare a brief report."
-        }
-      });
-      
-      const subject = `MathMentor Feedback: ${rating} Stars`;
-      const body = 
-        `Rating: ${rating}/5 Stars\n\n` +
-        `User Feedback:\n"${feedback}"\n\n` +
-        `User: ${user?.name || 'Anonymous'} (${user?.email || 'No email'})\n` +
-        `Learner Level: ${level}\n` +
-        `Current Sub-level: ${subLevel || 'N/A'}\n` +
-        `Language: ${language}`;
-
-      const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(destinationEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-      window.open(gmailComposeUrl, '_blank');
-
-    } catch (err) {
-      console.error("Feedback Processing Error:", err);
-      const fallbackUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(destinationEmail)}&su=${encodeURIComponent('MathMentor Feedback')}&body=${encodeURIComponent(feedback)}`;
-      window.open(fallbackUrl, '_blank');
-    }
+  const handleSubmitFeedback = (rawFeedback: string, rating: number) => {
+    addToast("Feedback prepared for sending.", "success");
   };
 
   return (
@@ -595,7 +587,7 @@ const App: React.FC = () => {
             toggleTheme={() => setIsDarkMode(!isDarkMode)} 
             onOpenMenu={() => setIsDrawerOpen(true)} 
             onLogin={() => setIsAuthModalOpen(true)} 
-            onLogout={() => { setUser(null); onDeleteData(); }} 
+            onLogout={handleLogout} 
             user={user} 
             onNavigate={handleNavigate}
             language={language}
@@ -636,7 +628,7 @@ const App: React.FC = () => {
                   <div className={`bg-white dark:bg-[#0f172a] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 overflow-hidden h-full flex flex-col transition-all duration-500`}>
                     <div className={`flex items-center justify-between mb-6 w-full`}>
                       {!isFocusMinimized && <h2 className="text-xs font-black flex items-center gap-2 tracking-[0.1em] text-slate-800 dark:text-slate-200 uppercase"><Sparkles size={16} className="text-indigo-600" /> Focus Areas</h2>}
-                      <button onClick={() => setIsFocusMinimized(!isFocusMinimized)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400">
+                      <button onClick={() => { setIsFocusMinimized(!isFocusMinimized); }} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400">
                         {isFocusMinimized ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
                       </button>
                     </div>

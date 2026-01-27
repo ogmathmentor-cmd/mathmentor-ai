@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { UserLevel, Language } from '../types';
 import { GraduationCap, Moon, Sun, Menu, ChevronDown, Check, LogOut, Settings, User as UserIcon, Languages } from 'lucide-react';
@@ -35,8 +34,8 @@ const Header: React.FC<HeaderProps> = ({
   const profileRef = useRef<HTMLDivElement>(null);
 
   const beginnerOptions = ['Standard 1', 'Standard 2', 'Standard 3', 'Standard 4', 'Standard 5', 'Standard 6'];
-  const intermediateOptions = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5', 'Form 4(+Math)', 'Form 5(+Math)'];
-  const advancedOptions = ['Essential Mathematics', 'Pure Mathematics', 'Applied Mathematics'];
+  const intermediateOptions = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5'];
+  const advancedOptions = ['Form 4 (Add Math)', 'Form 5 (Add Math)', 'Essential Mathematics'];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -52,7 +51,7 @@ const Header: React.FC<HeaderProps> = ({
   }, []);
 
   const handleLevelClick = (l: UserLevel) => {
-    if (l === UserLevel.BEGINNER || l === UserLevel.INTERMEDIATE || l === UserLevel.ADVANCED) {
+    if (l !== UserLevel.OPENAI) {
       setOpenMenu(openMenu === l ? null : l);
     } else {
       setLevel(l, null);
@@ -91,7 +90,7 @@ const Header: React.FC<HeaderProps> = ({
               {(Object.values(UserLevel) as UserLevel[])
                 .filter(l => l !== UserLevel.OPENAI)
                 .map((l) => {
-                  const hasSubmenu = l === UserLevel.BEGINNER || l === UserLevel.INTERMEDIATE || l === UserLevel.ADVANCED;
+                  const hasSubmenu = l !== UserLevel.OPENAI;
                   const isMenuOpen = openMenu === l;
                   const isActive = level === l;
                   
@@ -110,7 +109,11 @@ const Header: React.FC<HeaderProps> = ({
                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                         }`}
                       >
-                        {language === 'BM' ? l.replace('Intermediate (Secondary)', 'Menengah').replace('Beginner (Primary)', 'Asas').replace('Advanced (University)', 'Tinggi') : l.split(' (')[0]}
+                        {language === 'BM' 
+                          ? l.replace('Intermediate (Secondary)', 'Menengah')
+                             .replace('Beginner (Primary)', 'Asas')
+                             .replace('Advanced (KSSM Add Math / Pre-U)', 'Matematik Tambahan & Lanjutan') 
+                          : l.split(' (')[0]}
                         {hasSubmenu && <ChevronDown size={14} className={`transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />}
                       </button>
 

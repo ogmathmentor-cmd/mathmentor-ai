@@ -1,8 +1,7 @@
-
 export enum UserLevel {
   BEGINNER = 'Beginner (Primary)',
   INTERMEDIATE = 'Intermediate (Secondary)',
-  ADVANCED = 'Advanced (University)',
+  ADVANCED = 'Advanced (KSSM Add Math / Pre-U)',
   OPENAI = 'OpenAI'
 }
 
