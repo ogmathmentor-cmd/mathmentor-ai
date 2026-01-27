@@ -2,7 +2,7 @@
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { UserLevel, Message, FileAttachment, ChatMode, Language, Toast as ToastType } from './types';
+import { UserLevel, Message, FileAttachment, ChatMode, Language, Toast as ToastType, Feedback } from './types';
 import Header from './components/Header';
 import HomeScreen from './components/HomeScreen';
 import ChatInterface from './components/ChatInterface';
@@ -186,8 +186,15 @@ const STORAGE_KEYS = {
   LANGUAGE: 'math_mentor_language',
   CHATMODE: 'math_mentor_chatmode',
   FOCUS_AREAS: 'math_mentor_focusareas',
-  USER_SESSION: 'math_mentor_user_session'
+  USER_SESSION: 'math_mentor_user_session',
+  FEEDBACKS: 'math_mentor_feedbacks'
 };
+
+const DEFAULT_FEEDBACKS: Feedback[] = [
+  { id: '1', userEmail: 'ahmad@example.com', userName: 'Ahmad Daniel', userPfp: 'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Ahmad', rating: 5, message: "Sangat membantu untuk Add Math! Penjelasan langkah demi langkah memang power.", timestamp: new Date(2025, 0, 15) },
+  { id: '2', userEmail: 'sarah@example.com', userName: 'Sarah Lim', userPfp: 'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Sarah', rating: 5, message: "The step-by-step guidance is amazing. I finally understand Matrices!", timestamp: new Date(2025, 0, 18) },
+  { id: '3', userEmail: 'joey@example.com', userName: 'Joey Tan', userPfp: 'https://api.dicebear.com/7.x/fun-emoji/svg?seed=Joey', rating: 4, message: "UI cantik gila. Senang nak guna kat phone.", timestamp: new Date(2025, 0, 20) }
+];
 
 const App: React.FC = () => {
   const [view, setView] = useState<'home' | 'app' | 'settings' | 'quicknotes'>('home');
@@ -197,6 +204,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [toasts, setToasts] = useState<ToastType[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>(DEFAULT_FEEDBACKS);
   
   const [language, setLanguage] = useState<Language>('EN');
   const [level, setLevel] = useState<UserLevel>(UserLevel.INTERMEDIATE);
@@ -230,6 +238,7 @@ const App: React.FC = () => {
     const savedChatmode = localStorage.getItem(STORAGE_KEYS.CHATMODE);
     const savedFocus = localStorage.getItem(STORAGE_KEYS.FOCUS_AREAS);
     const savedUser = localStorage.getItem(STORAGE_KEYS.USER_SESSION);
+    const savedFeedbacks = localStorage.getItem(STORAGE_KEYS.FEEDBACKS);
 
     if (savedMessages) {
       try {
@@ -244,11 +253,16 @@ const App: React.FC = () => {
     if (savedFocus) {
       try { setActiveFocusAreas(JSON.parse(savedFocus)); } catch (e) {}
     }
+    if (savedFeedbacks) {
+      try { 
+        const parsed = JSON.parse(savedFeedbacks);
+        setFeedbacks(parsed.map((f: any) => ({ ...f, timestamp: new Date(f.timestamp) })));
+      } catch (e) {}
+    }
     if (savedUser) {
       try { 
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
-        // PERSISTENCE: Acknowledge returning users
         setTimeout(() => {
           addToast(language === 'BM' 
             ? `Selamat kembali, ${parsedUser.name.split(' ')[0]}! Sedia untuk belajar lagi?` 
@@ -258,6 +272,11 @@ const App: React.FC = () => {
       } catch (e) { console.error("Failed to load user session", e); }
     }
   }, []);
+
+  // Save feedbacks
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.FEEDBACKS, JSON.stringify(feedbacks));
+  }, [feedbacks]);
 
   // Save state to localStorage on changes
   useEffect(() => {
@@ -558,8 +577,27 @@ const App: React.FC = () => {
     addToast("Logged out successfully.", "success");
   };
 
-  const handleSubmitFeedback = (rawFeedback: string, rating: number) => {
-    addToast("Feedback prepared for sending.", "success");
+  const handleSubmitFeedback = (text: string, rating: number) => {
+    if (user) {
+      // Constraint: Check if user already submitted feedback
+      const alreadySubmitted = feedbacks.some(f => f.userEmail === user.email);
+      if (alreadySubmitted) {
+        addToast(language === 'BM' ? "Anda sudah memberikan maklum balas!" : "You have already submitted feedback!", "info");
+        return;
+      }
+
+      const newFeedback: Feedback = {
+        id: Math.random().toString(36).substring(7),
+        userEmail: user.email,
+        userName: user.name,
+        userPfp: user.pfp,
+        rating,
+        message: text,
+        timestamp: new Date()
+      };
+      setFeedbacks(prev => [newFeedback, ...prev]);
+      addToast("Feedback submitted successfully!", "success");
+    }
   };
 
   return (
@@ -587,7 +625,7 @@ const App: React.FC = () => {
       />
 
       {view === 'home' ? (
-        <HomeScreen onStart={() => setView('app')} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} onOpenMenu={() => setIsDrawerOpen(true)} onLogin={() => setIsAuthModalOpen(true)} user={user} />
+        <HomeScreen onStart={() => setView('app')} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} onOpenMenu={() => setIsDrawerOpen(true)} onLogin={() => setIsAuthModalOpen(true)} user={user} feedbacks={feedbacks} />
       ) : (
         <div className="flex flex-col h-screen overflow-hidden">
           <Header 

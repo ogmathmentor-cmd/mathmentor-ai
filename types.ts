@@ -1,3 +1,4 @@
+
 export enum UserLevel {
   BEGINNER = 'Beginner (Primary)',
   INTERMEDIATE = 'Intermediate (Secondary)',
@@ -29,6 +30,16 @@ export interface Message {
   image?: string; // base64 data url for generated images
   citations?: Citation[];
   error?: boolean;
+}
+
+export interface Feedback {
+  id: string;
+  userEmail: string; // Used to prevent multiple feedbacks per account
+  userName: string;
+  userPfp: string;
+  rating: number;
+  message: string;
+  timestamp: Date;
 }
 
 export interface MathStep {

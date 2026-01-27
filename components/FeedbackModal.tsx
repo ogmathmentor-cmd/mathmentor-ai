@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { X, MessageSquare, Mail, Star, ChevronRight, Lock, LogIn } from 'lucide-react';
 
@@ -9,26 +10,52 @@ interface FeedbackModalProps {
   onSignIn: () => void;
 }
 
+// Slur Filter Dictionary
+const SLURS = [
+  /n[i1]gga/gi,
+  /bodoh/gi,
+  /babi/gi,
+  /anjing/gi,
+  /pukimak/gi,
+  /pantat/gi,
+  /sial/gi,
+  /stupid/gi,
+  /bastard/gi,
+  /fuc?k/gi,
+  /shit/gi,
+  /dick/gi,
+  /pussy/gi,
+  /bangang/gi,
+  /celaka/gi
+];
+
 const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit, user, onSignIn }) => {
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
 
-  const operatorEmail = 'ogmathmentor@gmail.com';
-
   if (!isOpen) return null;
 
-  const handleSendGmail = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!feedback.trim() || !user) return;
+  const applyCensorship = (text: string) => {
+    let censored = text;
+    SLURS.forEach(pattern => {
+      censored = censored.replace(pattern, (match) => '*'.repeat(match.length));
+    });
+    return censored;
+  };
 
-    const subject = `MathMentor Feedback: ${rating} Stars from ${user.name}`;
-    const body = `FEEDBACK REPORT\n---------------------------\nRating: ${rating}/5 Stars\nUser: ${user.name} (${user.email})\n\nMessage:\n"${feedback}"\n---------------------------`;
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedback.trim() || !user || rating === 0) return;
+
+    // Apply censorship before submission
+    const safeFeedback = applyCensorship(feedback);
+
+    onSubmit(safeFeedback, rating);
     
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(operatorEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    
-    window.open(gmailUrl, '_blank');
-    onSubmit(feedback, rating);
+    // Clear form and close
+    setFeedback('');
+    setRating(0);
     onClose();
   };
 
@@ -77,7 +104,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSendGmail} className="space-y-6">
+            <form onSubmit={handleFormSubmit} className="space-y-6">
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Rating</label>
                 <div className="flex gap-2">
@@ -126,7 +153,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
                   className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95"
                 >
                   <Mail size={20} />
-                  Send via Gmail
+                  Submit Feedback
                   <ChevronRight size={18} />
                 </button>
               </div>
