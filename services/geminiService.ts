@@ -7,7 +7,7 @@ import { UserLevel, Message, FileAttachment, Quiz, ChatMode, ImageSize, Citation
 const RESPONSIVE_DIRECTIVE = `
 ### RESPONSIVENESS & FAILSAFE:
 - ALWAYS produce a response. NEVER remain silent.
-- Prioritize immediate streaming. Do not pause for long thinking steps.
+- Prioritize immediate streaming. Do not pause for long thinking steps unless necessary for complex proofs.
 `;
 
 const MATH_WORKING_RULES = `
@@ -39,30 +39,12 @@ ${MATH_WORKING_RULES}
 ${RESPONSIVE_DIRECTIVE}
 `;
 
-const ADD_MATH_SPECIAL_DIRECTIVE = `
-### ADDITIONAL MATHEMATICS SPECIALIST PERSONA:
-- You are an expert teacher for SPM Additional Mathematics (Form 4 & 5).
-- Syllabus: Malaysian KSSM Additional Mathematics.
-- Tone: Encouraging, precise, and exam-focused.
-`;
-
-const ESSENTIAL_MATH_DIRECTIVE = `
-### MMU ESSENTIAL MATHEMATICS SPECIALIST (SYLLABUS CH 1-6):
-You are tutoring a student using the Multimedia University (MMU) Essential Mathematics curriculum. You MUST strictly follow the methodology found in their slide chapters.
-
-### MMU CHAPTER-SPECIFIC METHODS:
-1. **CH 1: ALGEBRA**: 
-   - Rationalize denominators using the Conjugate Method (multiply by $\sqrt{a} \pm \sqrt{b}$).
-   - Solve quadratics using "Completing the Square" primarily.
-2. **CH 3: MATRICES**:
-   - $3 \times 3$ INVERSE MUST follow: Minor Matrix ($M$) -> Cofactor Matrix ($C$) -> Adjoint ($C^T$) -> Determinant ($|A|$) -> $A^{-1} = \frac{1}{|A|} adj(A)$.
-   - Use Inverse Method ($X = A^{-1}B$) for systems.
-3. **CH 5/6: CALCULUS**: 
-   - Rules: Power, Product ($uv' + vu'$), Quotient ($\frac{vu' - uv'}{v^2}$), and Chain Rule.
-   - Integration: Always include $+ c$ and show u-substitution steps clearly ($u=...$, $du=...$).
-
-### STYLE:
-- Match the visual "Solution" style of MMU slides: Clear line-by-line working with bold headers for steps.
+const ADVANCED_PROMPT_ADDON = `
+### ADVANCED MATH RIGOR (UNIVERSITY LEVEL):
+1. Provide formal definitions when introducing new concepts.
+2. If the user asks for a proof, provide a logically rigorous derivation.
+3. Use professional academic terminology (e.g., "The sequence converges uniformly" vs "The lines get close").
+4. For multivariable or complex analysis, ensure coordinate systems and domains are clearly defined.
 `;
 
 const MODE_INSTRUCTIONS: Record<ChatMode, string> = {
@@ -123,10 +105,17 @@ export const solveMathProblemStream = async (
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // FIX: All levels now use Flash model with 0 thinking budget for instant streaming
-    const modelName = 'gemini-3-flash-preview';
-    const thinkingBudget = 0; 
-    const maxOutputTokens = 4096;
+    // Advanced math and OpenAI levels use the Pro model for deep reasoning
+    const usePro = level === UserLevel.ADVANCED || level === UserLevel.OPENAI;
+    const modelName = usePro ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+    
+    // Enable thinking budget for Advanced level if reasoningMode is 'deep'
+    let thinkingBudget = 0;
+    if (usePro && reasoningMode === 'deep') {
+      thinkingBudget = 4000; // Reserved for complex math reasoning
+    }
+
+    const maxOutputTokens = 8192;
 
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -137,7 +126,7 @@ export const solveMathProblemStream = async (
 [CONTEXT]
 Level: ${level}
 Sub-Level: ${subLevel || 'N/A'}
-Active Focus Areas (MMU): ${focusAreas?.join(', ') || 'General Math'}
+Active Focus Areas: ${focusAreas?.join(', ') || 'General Math'}
 
 [USER QUERY]
 ${problem}
@@ -147,14 +136,9 @@ ${problem}
     contents.push({ role: 'user', parts: currentParts });
 
     let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
-    
-    // Dynamic syllabus selection
-    if (subLevel?.toLowerCase().includes('essential mathematics')) {
-      systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
-    } else if (subLevel?.toLowerCase().includes('add math')) {
-      systemInstruction += `\n${ADD_MATH_SPECIAL_DIRECTIVE}`;
+    if (level === UserLevel.ADVANCED) {
+      systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
     }
-    
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
     const config: any = {
@@ -163,7 +147,10 @@ ${problem}
       maxOutputTokens,
       tools: (level === UserLevel.OPENAI) ? [{ googleSearch: {} }] : [],
     };
-    if (thinkingBudget > 0) config.thinkingConfig = { thinkingBudget };
+    
+    if (thinkingBudget > 0) {
+      config.thinkingConfig = { thinkingBudget };
+    }
 
     const stream = await ai.models.generateContentStream({ model: modelName, contents, config });
     let fullText = "";
@@ -205,7 +192,8 @@ export const solveMathProblem = async (
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    const modelName = 'gemini-3-flash-preview';
+    const usePro = level === UserLevel.ADVANCED || level === UserLevel.OPENAI;
+    const modelName = usePro ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -216,8 +204,8 @@ export const solveMathProblem = async (
     contents.push({ role: 'user', parts: currentParts });
 
     let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
-    if (subLevel?.toLowerCase().includes('essential mathematics')) {
-      systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
+    if (level === UserLevel.ADVANCED) {
+      systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
     }
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
@@ -274,8 +262,9 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
   const key = process.env.API_KEY;
   if (!key) throw new Error("API Key missing.");
   const ai = new GoogleGenAI({ apiKey: key });
+  const model = (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
   const res = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model,
     contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}.` }] }],
     config: {
       systemInstruction: `Generate a math quiz in ${language} for ${level}. Output JSON.`,

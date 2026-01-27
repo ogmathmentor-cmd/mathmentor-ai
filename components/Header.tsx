@@ -34,10 +34,8 @@ const Header: React.FC<HeaderProps> = ({
   const profileRef = useRef<HTMLDivElement>(null);
 
   const beginnerOptions = ['Standard 1', 'Standard 2', 'Standard 3', 'Standard 4', 'Standard 5', 'Standard 6'];
-  const intermediateOptions = [
-    'Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5', 
-    'Form 4 (Add Math)', 'Form 5 (Add Math)', 'Essential Mathematics'
-  ];
+  const intermediateOptions = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5'];
+  const advancedOptions = ['Essential Mathematics'];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -90,15 +88,15 @@ const Header: React.FC<HeaderProps> = ({
           {showLevels && (
             <div className="hidden lg:flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl border border-slate-200/50 dark:border-slate-700/50" ref={menuRef}>
               {(Object.values(UserLevel) as UserLevel[])
-                .filter(l => l !== UserLevel.OPENAI && l !== UserLevel.ADVANCED)
+                .filter(l => l !== UserLevel.OPENAI)
                 .map((l) => {
-                  const hasSubmenu = true;
                   const isMenuOpen = openMenu === l;
-                  const isActive = level === l || (l === UserLevel.INTERMEDIATE && level === UserLevel.ADVANCED);
+                  const isActive = level === l;
                   
                   let options: string[] = [];
                   if (l === UserLevel.BEGINNER) options = beginnerOptions;
                   else if (l === UserLevel.INTERMEDIATE) options = intermediateOptions;
+                  else if (l === UserLevel.ADVANCED) options = advancedOptions;
 
                   return (
                     <div key={l} className="relative">
@@ -113,31 +111,27 @@ const Header: React.FC<HeaderProps> = ({
                         {language === 'BM' 
                           ? l.replace('Intermediate (Secondary)', 'Menengah')
                              .replace('Beginner (Primary)', 'Asas')
+                             .replace('Advanced (University)', 'Universiti')
                           : l.split(' (')[0]}
-                        {hasSubmenu && <ChevronDown size={14} className={`transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />}
+                        <ChevronDown size={14} className={`transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
                       </button>
 
-                      {hasSubmenu && isMenuOpen && (
+                      {isMenuOpen && (
                         <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-2 z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-left">
-                          {options.map((opt) => {
-                            // Determine which level this option actually belongs to for the API
-                            const targetLevel = (opt.includes('Add Math') || opt.includes('Essential')) ? UserLevel.ADVANCED : l;
-                            
-                            return (
-                              <button
-                                key={opt}
-                                onClick={() => handleOptionSelect(targetLevel, opt)}
-                                className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between transition-colors ${
-                                  subLevel === opt
-                                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20 font-bold' 
-                                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
-                                }`}
-                              >
-                                {opt}
-                                {subLevel === opt && <Check size={14} />}
-                              </button>
-                            );
-                          })}
+                          {options.map((opt) => (
+                            <button
+                              key={opt}
+                              onClick={() => handleOptionSelect(l, opt)}
+                              className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between transition-colors ${
+                                subLevel === opt
+                                  ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20 font-bold' 
+                                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                              }`}
+                            >
+                              {opt}
+                              {subLevel === opt && <Check size={14} />}
+                            </button>
+                          ))}
                         </div>
                       )}
                     </div>

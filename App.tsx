@@ -27,6 +27,15 @@ const LEVEL_COLORS = [
   'bg-amber-600', 'bg-indigo-600', 'bg-cyan-600', 'bg-violet-600'
 ];
 
+const ADVANCED_FOCUS_AREAS: FocusArea[] = [
+  { label: 'Fundamentals of Algebra', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Functions and Graphs', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Matrices', color: 'bg-purple-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Sequence and Series', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Derivative', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Integration', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+];
+
 const PRIMARY_TRANSLATIONS: Record<string, string> = {
   'Whole Numbers (1 - 100)': 'Nombor Bulat (1 - 100)',
   'Basic Operations': 'Operasi Asas',
@@ -72,14 +81,6 @@ const KSSM_INTERMEDIATE_DATA: Record<string, { EN: string[], BM: string[] }> = {
   'Form 5': {
     EN: ['Variation', 'Matrices', 'Consumer Math (Insurans)', 'Consumer Math (Taxation)', 'Congruency & Enlargement', 'Trig Functions & Graphs', 'Dispersion (Grouped)', 'Mathematical Modelling'],
     BM: ['Ubahan', 'Matriks', 'Matematik Pengguna: Insurans', 'Matematik Pengguna: Percukaian', 'Kesebangunan, Pembesaran...', 'Nisbah dan Graf Fungsi Trigonometri', 'Sukatan Serakan Data Terumpul', 'Pemodelan Matematik']
-  },
-  'Form 4 (Add Math)': {
-    EN: ['Functions', 'Quadratic Functions', 'Systems of Linear Equations', 'Indices, Surds and Logarithms', 'Arithmetic and Geometric Progressions', 'Linear Law', 'Coordinate Geometry', 'Vectors', 'Solution of Triangles', 'Index Numbers'],
-    BM: ['Fungsi', 'Fungsi Kuadratik', 'Sistem Persamaan Linear', 'Indeks, Surd dan Logaritma', 'Jujukan Aritmetik dan Geometri', 'Hukum Linear', 'Geometri Koordinat', 'Vektor', 'Penyelesaian Segi Tiga', 'Nombor Indeks']
-  },
-  'Form 5 (Add Math)': {
-    EN: ['Circular Measure', 'Coordinate Geometry – Advanced', 'Vectors – Advanced', 'Trigonometric Functions', 'Differentiation', 'Integration', 'Permutation and Combination', 'Probability Distribution', 'Linear Programming', 'Kinematics of Linear Motion'],
-    BM: ['Ukuran Bulatan', 'Geometri Koordinat Lanjutan', 'Vektor Lanjutan', 'Fungsi Trigonometri', 'Pembezaan', 'Pengamiran', 'Penyusunan dan Gabungan', 'Taburan Kebarangkalian', 'Pengaturcaraan Linear', 'Kinematik Gerakan Linear']
   }
 };
 
@@ -95,7 +96,7 @@ const LEVEL_FOCUS_MAP: Record<UserLevel, FocusArea[]> = {
     { label: 'Data Management', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
   ],
   [UserLevel.INTERMEDIATE]: [],
-  [UserLevel.ADVANCED]: [],
+  [UserLevel.ADVANCED]: ADVANCED_FOCUS_AREAS,
   [UserLevel.OPENAI]: []
 };
 
@@ -163,12 +164,12 @@ const SUB_LEVEL_FOCUS_MAP: Record<string, FocusArea[]> = {
     { label: 'Data Handling and Likelihood', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
   ],
   'Essential Mathematics': [
-    { label: 'Fundamentals Of Algebra', color: 'bg-indigo-600 text-white', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Functions And Graphs', color: 'bg-violet-600 text-white', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Matrices', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Sequence and Series', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+    { label: 'Fundamentals of Algebra', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+    { label: 'Functions and Graphs', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+    { label: 'Matrices', color: 'bg-purple-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+    { label: 'Sequence and Series', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
     { label: 'Derivative', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Integration', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+    { label: 'Integration', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
   ],
 };
 
@@ -244,7 +245,12 @@ const App: React.FC = () => {
         setMessages(parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
       } catch (e) { console.error("Failed to load history", e); }
     }
-    if (savedLevel) setLevel(savedLevel as UserLevel);
+    if (savedLevel && Object.values(UserLevel).includes(savedLevel as UserLevel)) {
+      setLevel(savedLevel as UserLevel);
+    } else {
+      setLevel(UserLevel.INTERMEDIATE);
+    }
+    
     if (savedSublevel) setSubLevel(savedSublevel === 'null' ? null : savedSublevel);
     if (savedLanguage) setLanguage(savedLanguage as Language);
     if (savedChatmode) setChatMode(savedChatmode === 'null' ? null : savedChatmode as ChatMode);
@@ -264,7 +270,6 @@ const App: React.FC = () => {
       } catch (e) { console.error("Failed to load user session", e); }
     }
 
-    // FIREBASE SYNC: Listen for live feedbacks for the "Wall of Love"
     if (window.firebaseDatabase) {
       const feedbackRef = window.firebaseDatabase.ref('liveFeedback');
       const listener = feedbackRef.limitToLast(20).on('value', (snapshot: any) => {
@@ -274,7 +279,7 @@ const App: React.FC = () => {
             id,
             userName: val.userName,
             userPfp: `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${val.avatarSeed || val.userName}`,
-            rating: val.rating || 5, // Default to 5 if coming from quick chat
+            rating: val.rating || 5,
             message: val.message,
             timestamp: new Date(val.timestamp)
           })).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
@@ -286,7 +291,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Save state to localStorage on changes
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
   }, [messages]);
@@ -345,7 +349,6 @@ const App: React.FC = () => {
   const currentFocusOptions = useMemo(() => {
     if (level === UserLevel.OPENAI) return [];
     
-    // Check if subLevel corresponds to KSSM/Add Math data
     if (subLevel && KSSM_INTERMEDIATE_DATA[subLevel]) {
       const labels = KSSM_INTERMEDIATE_DATA[subLevel][language];
       return labels.map((label, idx) => ({
@@ -355,7 +358,6 @@ const App: React.FC = () => {
       }));
     }
 
-    // Default to mapped focus areas for standard levels
     let options = (subLevel && SUB_LEVEL_FOCUS_MAP[subLevel]) 
       ? [...SUB_LEVEL_FOCUS_MAP[subLevel]] 
       : [...(LEVEL_FOCUS_MAP[level] || [])];
@@ -409,15 +411,13 @@ const App: React.FC = () => {
       return;
     }
 
-    // Handle Pro level requirements
-    const isPro = level === UserLevel.ADVANCED || level === UserLevel.OPENAI || (subLevel?.includes('Add Math') || subLevel?.includes('Essential'));
+    const isPro = level === UserLevel.OPENAI || level === UserLevel.ADVANCED;
     if (isPro) {
       await handleKeySelection();
     }
 
     setIsLoading(true);
     
-    // Add an initial placeholder model message for streaming
     setMessages(prev => [...prev, {
       role: 'model',
       text: "",
@@ -589,7 +589,6 @@ const App: React.FC = () => {
   const handleSubmitFeedback = async (text: string, rating: number) => {
     if (!user) return;
 
-    // Push to Firebase for real-time Wall of Love updates
     if (window.firebaseDatabase) {
       try {
         const feedbackRef = window.firebaseDatabase.ref('liveFeedback');
@@ -680,7 +679,6 @@ const App: React.FC = () => {
             <QuickNotesView language={language} onBack={() => setView('app')} />
           ) : (
             <main className="flex-1 max-w-full mx-auto w-full p-0 md:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-0 md:gap-6 overflow-hidden h-full">
-              {/* Sidebar Left: Focus Areas (Hidden on mobile) */}
               {level !== UserLevel.OPENAI && (
                 <div className={`hidden lg:flex flex-col gap-6 transition-all duration-500 ease-in-out ${isFocusMinimized ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
                   <div className={`bg-white dark:bg-[#0f172a] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 overflow-hidden h-full flex flex-col transition-all duration-500`}>
@@ -706,12 +704,10 @@ const App: React.FC = () => {
                 </div>
               )}
 
-              {/* Center Panes: Chat Interface (Expanded on mobile) */}
               <div className={`flex flex-col h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:col-span-12' : (isFocusMinimized ? 'lg:col-span-8' : 'lg:col-span-7')}`}>
                 <ChatInterface messages={messages} onSendMessage={handleSendMessage} isLoading={isLoading} level={level} activeMode={chatMode} setActiveMode={setChatMode} onError={addToast} language={language} />
               </div>
 
-              {/* Sidebar Right: Quiz Center (Hidden on mobile per request) */}
               <div className={`hidden lg:block ${level === UserLevel.OPENAI ? 'lg:hidden' : 'lg:col-span-3'} h-full overflow-hidden`}>
                   <ToolsPanel level={level} subLevel={subLevel} setLevel={handleLevelChange} activeFocusAreas={activeFocusAreas} toggleFocusArea={toggleFocusArea} focusOptions={currentFocusOptions} language={language} />
               </div>
