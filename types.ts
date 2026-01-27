@@ -34,7 +34,6 @@ export interface Message {
 
 export interface Feedback {
   id: string;
-  userEmail: string; // Used to prevent multiple feedbacks per account
   userName: string;
   userPfp: string;
   rating: number;
