@@ -181,11 +181,11 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
 
   const getDifficultyColor = (d: QuizDifficulty) => {
     switch (d) {
-      case 'easy': return 'dark:bg-slate-800 dark:text-slate-400';
-      case 'medium': return 'bg-amber-500 text-white';
-      case 'hard': return 'dark:bg-slate-800 dark:text-slate-400';
-      case 'adaptive': return 'dark:bg-slate-800 dark:text-slate-400';
-      default: return 'dark:bg-slate-800 dark:text-slate-400';
+      case 'easy': return 'bg-emerald-500 text-white shadow-emerald-500/20';
+      case 'medium': return 'bg-amber-500 text-white shadow-amber-500/20';
+      case 'hard': return 'bg-rose-500 text-white shadow-rose-500/20';
+      case 'adaptive': return 'bg-purple-600 text-white shadow-purple-600/20';
+      default: return 'bg-slate-500 text-white';
     }
   };
 
@@ -224,9 +224,9 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
               <button
                 key={d}
                 onClick={() => setDifficulty(d)}
-                className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${
                   difficulty === d
-                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
+                    ? getDifficultyColor(d)
                     : 'bg-slate-50 dark:bg-[#1e293b] text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-[#2e3b4e]'
                 }`}
               >

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { UserLevel, Language } from '../types';
 import { GraduationCap, Moon, Sun, Menu, ChevronDown, Check, LogOut, Settings, User as UserIcon, Languages } from 'lucide-react';
@@ -34,7 +35,7 @@ const Header: React.FC<HeaderProps> = ({
   const profileRef = useRef<HTMLDivElement>(null);
 
   const beginnerOptions = ['Standard 1', 'Standard 2', 'Standard 3', 'Standard 4', 'Standard 5', 'Standard 6'];
-  const intermediateOptions = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5'];
+  const intermediateOptions = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5', 'Form 4(+Math)', 'Form 5(+Math)'];
   const advancedOptions = ['Essential Mathematics', 'Pure Mathematics', 'Applied Mathematics'];
 
   useEffect(() => {

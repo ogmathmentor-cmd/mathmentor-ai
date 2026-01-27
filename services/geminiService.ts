@@ -27,9 +27,49 @@ STANDARD STRUCTURE:
 - Final answer
 `;
 
+const INTERMEDIATE_ADD_MATH_DIRECTIVE = `
+### INTERMEDIATE MODE: ADDITIONAL MATHEMATICS (KSSM MALAYSIA)
+You operate as a specialized Mathematics AI Tutor for Malaysian KSSM Additional Mathematics (Form 4 & 5 only).
+
+#### SCOPE (FORM 4 – TINGKATAN 4):
+1. Functions (Fungsi), 2. Quadratic Functions (Fungsi Kuadratik), 3. Systems of Linear Equations (Sistem Persamaan Linear), 4. Indices, Surds and Logarithms (Indeks, Bentuk Piawai, Surd dan Logaritma), 5. Arithmetic and Geometric Progressions (Jujukan Aritmetik dan Jujukan Geometri), 6. Linear Law (Hukum Linear), 7. Coordinate Geometry (Geometri Koordinat), 8. Vectors (Vektor), 9. Solution of Triangles (Penyelesaian Segi Tiga), 10. Index Numbers (Nombor Indeks).
+
+#### SCOPE (FORM 5 – TINGKATAN 5):
+11. Circular Measure (Ukuran Bulatan), 12. Coordinate Geometry – Advanced (Geometri Koordinat Lanjutan), 13. Vectors – Advanced (Vektor Lanjutan), 14. Trigonometric Functions (Fungsi Trigonometri), 15. Differentiation (Pembezaan), 16. Integration (Pengamiran), 17. Permutation and Combination (Penyusunan dan Gabungan), 18. Probability Distribution (Taburan Kebarangkalian), 19. Linear Programming (Pengaturcaraan Linear), 20. Kinematics of Linear Motion (Kinematik Gerakan Linear).
+
+#### RULES:
+- Answer ONLY based on the chapters listed above.
+- Match difficulty strictly to Form 4–Form 5 Additional Mathematics (SPM) level.
+- Use correct mathematical notation and symbols.
+- Provide clear, logical step-by-step workings when solving problems.
+- Do not simplify concepts to primary or lower secondary level.
+- If a question is outside the listed chapters, strictly respond:
+  "Topik ini berada di luar skop Intermediate (Matematik Tambahan Tingkatan 4 dan 5)."
+
+#### TEACHING BEHAVIOUR:
+- When asked to explain, teach using structured steps and examples.
+- When asked to solve, show full mathematical working.
+- When correcting a student, explain the mistake and show the correct method.
+- Encourage SPM Additional Mathematics exam-style thinking.
+`;
+
+const BM_TRANSLATION_RULES = `
+### KSSM BM TRANSLATION & TERMINOLOGY RULES (APPLY WHEN LANGUAGE IS BM):
+1. LANGUAGE: Use formal, clear, textbook-style Bahasa Melayu (BM) suitable for KSSM students.
+2. MATH PRESERVATION: Do NOT change numbers, symbols, matrices, variables, or LaTeX formatting.
+3. TERMINOLOGY:
+   - Matrix -> Matriks
+   - Given -> Diberi
+   - Determine/Find -> Tentukan/Cari
+   - Product -> Hasil darab
+   - Hence -> Oleh itu
+   - Value -> Nilai
+4. FORMAT: Preserve question numbering and multiple-choice labels (A, B, C, D).
+`;
+
 const SYSTEM_PROMPT_CORE = `
 ### MATHMENTOR AI DIRECTIVE
-You are a professional, friendly human-like math tutor. Your goal is to ensure the user gets a correct answer they can actually understand.
+You are a professional, friendly human-like math tutor and translator. Your goal is to ensure the user gets a correct answer they can actually understand.
 
 ### CONSTRAINTS:
 - Language: [LANGUAGE_TOKEN]. 
@@ -147,6 +187,21 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 5, delay = 2000): Pr
   }
 }
 
+const getFullSystemInstruction = (level: UserLevel, mode: ChatMode, language: Language) => {
+  let instruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
+  
+  if (language === 'BM') {
+    instruction += `\n${BM_TRANSLATION_RULES}`;
+  }
+
+  if (level === UserLevel.INTERMEDIATE) {
+    instruction += `\n${INTERMEDIATE_ADD_MATH_DIRECTIVE}`;
+  }
+  
+  instruction += `\n${MODE_INSTRUCTIONS[mode]}`;
+  return instruction;
+};
+
 export const solveMathProblemStream = async (
   problem: string,
   history: Message[],
@@ -187,7 +242,7 @@ export const solveMathProblemStream = async (
     contents.push({ role: 'user', parts: currentParts });
 
     const config: any = {
-      systemInstruction: `${SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language)}\n${MODE_INSTRUCTIONS[mode]}`,
+      systemInstruction: getFullSystemInstruction(level, mode, language),
       temperature: mode === 'fast' ? 0.0 : 0.2,
       tools: (mode === 'fast') ? [] : [{ googleSearch: {} }],
     };
@@ -254,7 +309,7 @@ export const solveMathProblem = async (
     if (attachment) currentParts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
     contents.push({ role: 'user', parts: currentParts });
     const config: any = {
-      systemInstruction: `${SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language)}\n${MODE_INSTRUCTIONS[mode]}`,
+      systemInstruction: getFullSystemInstruction(level, mode, language),
       temperature: mode === 'fast' ? 0.0 : 0.2,
       tools: (mode === 'fast') ? [] : [{ googleSearch: {} }],
     };
@@ -280,7 +335,6 @@ export const generateStudyNotes = async (files: FileAttachment[], language: Lang
   if (!key) return "API Key missing.";
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    // Instruction to handle larger materials by scanning everything but summarizing into a compact format
     const parts: any[] = [{ text: "Perform an exhaustive deep scan of all provided materials, especially large documents. Synthesize the core concepts into a COMPACT, high-density study master sheet. Your goal is to capture the complete essence of these materials in the most efficient, simplified format possible. Prioritize brevity, critical formulas, and logical connections between multiple files." }];
     files.forEach(f => parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } }));
     const res = await ai.models.generateContent({
@@ -288,7 +342,6 @@ export const generateStudyNotes = async (files: FileAttachment[], language: Lang
       contents: [{ role: 'user', parts }],
       config: {
         systemInstruction: "You are a master mathematical synthesizer. Create an EFFICIENT, COMPACT, and COMPLETE study sheet from the provided sources, regardless of their size. Use high-density information mapping. Highlight critical formulas in display math. Hierarchy: Concept -> Definition -> Formula -> One-line Example. Language: " + language,
-        // Increased thinking budget for deeper synthesis of potentially large files
         thinkingConfig: { thinkingBudget: 8000 }
       }
     });
@@ -327,11 +380,25 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
   if (!key) throw new Error("API Key missing.");
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
+    
+    const difficultyDirectives: Record<QuizDifficulty, string> = {
+      easy: "Focus on basic definitions and single-operation problems. High accessibility.",
+      medium: "Include multi-step calculations and common application scenarios. Standard textbook level.",
+      hard: "Use complex multi-stage problems, obscure edge cases, and high-order thinking requirements.",
+      adaptive: "Start easy and progress towards very challenging concepts within the quiz set."
+    };
+
     const res = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts: [{ text: `Generate ${difficulty} quiz on ${topic}` }] }],
+      contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty.toUpperCase()} math quiz on the following topic: ${topic}. Focus areas: ${focusAreas?.join(', ') || 'General'}.` }] }],
       config: {
-        systemInstruction: `Generate a math quiz. Output JSON matching quiz schema.`,
+        systemInstruction: `Generate a high-quality math quiz in ${language}. 
+        STRICT DIFFICULTY RULE: ${difficultyDirectives[difficulty]}
+        Learner Context: ${level}.
+        ${language === 'BM' ? BM_TRANSLATION_RULES : ''}
+        ${level === UserLevel.INTERMEDIATE ? INTERMEDIATE_ADD_MATH_DIRECTIVE : ''}
+        ALWAYS use LaTeX for all math formulas and values.
+        Output JSON matching quiz schema.`,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,

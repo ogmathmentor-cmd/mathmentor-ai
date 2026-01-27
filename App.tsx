@@ -67,12 +67,20 @@ const KSSM_INTERMEDIATE_DATA: Record<string, { EN: string[], BM: string[] }> = {
     BM: ['Indeks', 'Bentuk Piawai', 'Matematik Pengguna: Simpanan...', 'Lukisan Berskala', 'Nisbah Trigonometri', 'Sudut & Tangen dalam Bulatan', 'Pelan & Dongakan', 'Lokus dalam Dua Dimensi', 'Garis Lurus']
   },
   'Form 4': {
-    EN: ['Quadratic Functions', 'Number Fundamentals', 'Logical Reasoning', 'Set Operations', 'Graph Theory', 'Linear Inequalities', 'Motion Graphs', 'Dispersion (Ungrouped)', 'Combined Probability', 'Consumer Math (Finance)'],
+    EN: ['Quadratic Functions', 'Number Bases', 'Logical Reasoning', 'Set Operations', 'Graph Theory', 'Linear Inequalities', 'Motion Graphs', 'Dispersion (Ungrouped)', 'Combined Probability', 'Financial Management'],
     BM: ['Fungsi & Persamaan Kuadratik', 'Asas Nombor', 'Penaakulan Logik', 'Operasi Set', 'Rangkaian dalam Teori Graf', 'Ketaksamaan Linear', 'Graf Gerakan', 'Sukatan Serakan Data Tak Terkumpul', 'Kebarangkalian Peristiwa Bergabung', 'Matematik Pengguna: Pengurusan Kewangan']
   },
   'Form 5': {
-    EN: ['Variation', 'Matrices', 'Consumer Math (Insurans)', 'Consumer Math (Taxation)', 'Congruency & Enlargement', 'Trig Functions & Graphs', 'Dispersion (Grouped)', 'Mathematical Modelling'],
-    BM: ['Ubahan', 'Matriks', 'Matematik Pengguna: Insurans', 'Matematik Pengguna: Percukaian', 'Kesebangunan, Pembesaran...', 'Nisbah dan Graf Fungsi Trigonometri', 'Sukatan Serakan Data Terumpul', 'Pemodelan Matematik']
+    EN: ['Variation', 'Matrices', 'Insurance', 'Taxation', 'Congruency & Enlargement', 'Trig Functions', 'Dispersion (Grouped)', 'Mathematical Modelling'],
+    BM: ['Ubahan', 'Matriks', 'Matematik Pengguna: Insurans', 'Matematik Pengguna: Percukaian', 'Kesebangunan, Pembesaran dan Transformasi', 'Nisbah dan Graf Fungsi Trigonometri', 'Sukatan Serakan Data Terumpul', 'Pemodelan Matematik']
+  },
+  'Form 4(+Math)': {
+    EN: ['Functions', 'Quadratic Functions', 'Systems of Linear Equations', 'Indices, Surds and Logarithms', 'Arithmetic and Geometric Progressions', 'Linear Law', 'Coordinate Geometry', 'Vectors', 'Solution of Triangles', 'Index Numbers'],
+    BM: ['Fungsi', 'Fungsi Kuadratik', 'Sistem Persamaan Linear', 'Indeks, Bentuk Piawai, Surd dan Logaritma', 'Jujukan Aritmetik dan Jujukan Geometri', 'Hukum Linear', 'Geometri Koordinat', 'Vektor', 'Penyelesaian Segi Tiga', 'Nombor Indeks']
+  },
+  'Form 5(+Math)': {
+    EN: ['Circular Measure', 'Coordinate Geometry – Advanced', 'Vectors – Advanced', 'Trigonometric Functions', 'Differentiation', 'Integration', 'Permutation and Combination', 'Probability Distribution', 'Linear Programming', 'Kinematics of Linear Motion'],
+    BM: ['Ukuran Bulatan', 'Geometri Koordinat Lanjutan', 'Vektor Lanjutan', 'Fungsi Trigonometri', 'Pembezaan', 'Pengamiran', 'Penyusunan dan Gabungan', 'Taburan Kebarangkalian', 'Pengaturcaraan Linear', 'Kinematik Gerakan Linear']
   }
 };
 
