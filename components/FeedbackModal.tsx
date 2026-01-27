@@ -10,23 +10,24 @@ interface FeedbackModalProps {
   onSignIn: () => void;
 }
 
-// Slur Filter Dictionary - Censors offensive language
+// Advanced Slur Filter Dictionary - Fuzzy Matching
 const SLURS = [
-  /n[i1g]{2,}a/gi,      // nigga, n1gga, etc.
-  /b[o0]d[o0]h/gi,      // bodoh
-  /b[a4]b[i1]/gi,       // babi
-  /anj[i1]ng/gi,        // anjing
-  /puk[i1]m[a4]k/gi,    // pukimak
-  /p[a4]nt[a4]t/gi,     // pantat
-  /s[i1][a4]l/gi,       // sial
-  /st[u0]p[i1]d/gi,     // stupid
-  /b[a4]st[a4]rd/gi,    // bastard
-  /f[u*]{1,}ck/gi,      // fuck
-  /sh[i1]t/gi,          // shit
-  /d[i1]ck/gi,          // dick
-  /p[u*]{1,}ssy/gi,     // pussy
-  /b[a4]ng[a4]ng/gi,    // bangang
-  /c[e3]l[a4]k[a4]/gi   // celaka
+  // Patterns to catch variations like n.i.g.g.a, n1gga, n**ga, etc.
+  /n[i1\*e\_ ]{1,}[g6\*\_ ]{2,}[a4\@\*\_ ]/gi, // nigga variations
+  /b[o0\*\_ ]{1,}d[o0\*\_ ]{1,}h/gi,           // bodoh variations
+  /b[a4\*\_ ]{1,}b[i1\*\_ ]/gi,              // babi variations
+  /anj[i1\*\_ ]{1,}ng/gi,                    // anjing variations
+  /p[u\*\_ ]{1,}k[i1\*\_ ]m[a4\*\_ ]k/gi,    // pukimak variations
+  /p[a4\*\_ ]{1,}nt[a4\*\_ ]t/gi,            // pantat variations
+  /s[i1\*\_ ]{1,}[a4\*\_ ]l/gi,              // sial variations
+  /st[u0\*\_ ]p[i1\*\_ ]d/gi,                // stupid variations
+  /b[a4\*\_ ]st[a4\*\_ ]rd/gi,               // bastard variations
+  /f[u\*k\_ ]{1,}c?k/gi,                      // fuck variations
+  /sh[i1\*\_ ]t/gi,                          // shit variations
+  /d[i1\*\_ ]ck/gi,                          // dick variations
+  /p[u\*\_ ]{1,}[s\*\_ ]{2,}y/gi,            // pussy variations
+  /b[a4\*\_ ]ng[a4\*\_ ]ng/gi,               // bangang variations
+  /c[e3\*\_ ]l[a4\*\_ ]k[a4\*\_ ]/gi         // celaka variations
 ];
 
 const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit, user, onSignIn }) => {
@@ -75,8 +76,8 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
                 <MessageSquare size={24} />
               </div>
               <div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Give Feedback</h3>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Help us improve MathMentor</p>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Global Feedback</h3>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-widest">Post to the Live Feed</p>
               </div>
             </div>
             <button 
@@ -93,15 +94,15 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
                 <Lock size={40} />
               </div>
               <div className="space-y-2">
-                <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Sign In Required</h4>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-[280px] mx-auto">Please sign in to send feedback to our developers.</p>
+                <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Authentication Required</h4>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-[280px] mx-auto">Please sign in to post feedback to the global community feed.</p>
               </div>
               <button
                 onClick={onSignIn}
                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-3 active:scale-95"
               >
                 <LogIn size={20} />
-                Sign In to Continue
+                Sign In to Post
               </button>
             </div>
           ) : (
@@ -134,7 +135,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
                   required
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="What's on your mind?..."
+                  placeholder="Share your thoughts with the community..."
                   className="w-full h-40 px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all resize-none text-slate-900 dark:text-white placeholder:text-slate-400 leading-relaxed"
                 />
               </div>
@@ -143,7 +144,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
                 <div className="flex items-center gap-3 p-3 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100/50 dark:border-indigo-900/20">
                   <img src={user.pfp} className="w-8 h-8 rounded-lg shadow-sm" alt="User" />
                   <div className="flex-1 overflow-hidden">
-                    <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest leading-none mb-1">Sending as:</p>
+                    <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest leading-none mb-1">Posting as:</p>
                     <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{user.name}</p>
                   </div>
                 </div>
@@ -154,7 +155,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
                   className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95"
                 >
                   <Mail size={20} />
-                  Submit Feedback
+                  Post Feedback
                   <ChevronRight size={18} />
                 </button>
               </div>

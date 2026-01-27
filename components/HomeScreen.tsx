@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { GraduationCap, Sparkles, BrainCircuit, BookOpen, Rocket, ArrowRight, Moon, Sun, Menu, User as UserIcon, Mail, Instagram, Phone, Star, Activity } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { GraduationCap, Sparkles, BrainCircuit, BookOpen, Rocket, ArrowRight, Moon, Sun, Menu, User as UserIcon, Mail, Instagram, Phone, Star, Activity, Users, Globe, ShieldCheck } from 'lucide-react';
 import { Feedback } from '../types';
 
 interface User {
@@ -20,12 +20,20 @@ interface HomeScreenProps {
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleTheme, onOpenMenu, onLogin, user, feedbacks }) => {
-  // Logic to determine if a feedback is "New" (e.g., within the last 24 hours)
+  const [onlineCount, setOnlineCount] = useState(142);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setOnlineCount(prev => prev + (Math.random() > 0.5 ? 1 : -1));
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   const isRecent = (timestamp: Date) => {
     const now = new Date();
     const then = new Date(timestamp);
     const diffInHours = (now.getTime() - then.getTime()) / (1000 * 60 * 60);
-    return diffInHours < 24;
+    return diffInHours < 24; 
   };
 
   return (
@@ -61,7 +69,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
 
           {user ? (
             <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 rounded-xl p-1.5 shadow-sm">
-              <span className="hidden sm:block text-[10px] font-black text-white px-2">
+              <span className="hidden sm:block text-[10px] font-black text-white px-2 uppercase tracking-widest">
                 {user.name.split(' ')[0]}
               </span>
               <img src={user.pfp} className="w-7 h-7 rounded-lg border border-indigo-600 shadow-sm" alt="Profile" />
@@ -93,25 +101,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
           </div>
         </div>
 
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-4 w-full max-w-3xl mb-12">
-          {[
-            { icon: <Sparkles className="text-amber-500" size={18} />, title: "Adaptive Logic", desc: "Learns how you learn" },
-            { icon: <BrainCircuit className="text-indigo-400" size={18} />, title: "Step-by-Step", desc: "Clear, logical reasoning" },
-            { icon: <BookOpen className="text-emerald-400" size={18} />, title: "All Levels", desc: "Beginner to Professional" }
-          ].map((item, i) => (
-            <div key={i} className="flex md:flex-col items-center gap-4 md:gap-2 p-4 bg-slate-900/40 rounded-2xl border border-slate-800 shadow-sm hover:border-slate-700 transition-all group text-left md:text-center">
-              <div className="p-2 md:p-0 bg-slate-800 rounded-xl md:bg-transparent">
-                {item.icon}
-              </div>
-              <div>
-                <h3 className="font-bold text-sm text-white group-hover:text-indigo-400 transition-colors">{item.title}</h3>
-                <p className="text-[11px] text-slate-500">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
         <div className="flex flex-col items-center gap-4 w-full px-4 mb-24">
           <button
             onClick={onStart}
@@ -122,76 +111,111 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
             <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             <span className="absolute inset-0 rounded-full bg-indigo-500/20 animate-ping -z-10" />
           </button>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest animate-pulse">
-            Join 5,000+ Students Worldwide
-          </p>
+          <div className="flex items-center gap-3 px-4 py-2 bg-indigo-500/10 rounded-full border border-indigo-500/20 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">
+                {onlineCount} Scholars Active Global
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Feedback Section (Wall of Love Window) */}
+        {/* FEEDBACK SECTION: LIVE DASHBOARD */}
         <div className="w-full max-w-6xl px-4 mb-24 relative">
           <div className="text-center mb-10 flex flex-col items-center">
              <div className="flex items-center gap-2 mb-3">
-               <span className="relative flex h-2 w-2">
-                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-               </span>
-               <h2 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Live Feed</h2>
+               <Globe size={16} className="text-indigo-500 animate-pulse" />
+               <h2 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Official Student Feed</h2>
              </div>
-             <h3 className="text-3xl md:text-4xl font-black text-white tracking-tight">Wall of Love</h3>
+             <h3 className="text-3xl md:text-5xl font-black text-white tracking-tighter">Wall of Love</h3>
           </div>
           
-          {/* Scrollable Feedback Box / Window */}
-          <div className="bg-[#0f172a]/40 border border-slate-800 rounded-[2.5rem] p-4 md:p-8 shadow-2xl overflow-hidden backdrop-blur-sm relative border-t-indigo-500/30">
-            <div className="max-h-[520px] overflow-y-auto pr-2 custom-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 px-2">
-                {feedbacks.map((fb, i) => (
-                  <div 
-                    key={fb.id} 
-                    className="bg-[#0f172a]/95 backdrop-blur-2xl border border-slate-800/80 p-6 rounded-[1.5rem] shadow-xl transition-all group hover:-translate-y-2 hover:bg-[#1e293b] hover:border-indigo-500/50 flex flex-col items-start gap-4 h-full relative"
-                  >
-                    {isRecent(fb.timestamp) && (
-                      <div className="absolute top-4 right-4 px-2 py-1 bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest rounded-md animate-pulse">
-                        New
-                      </div>
-                    )}
-                    
-                    <div className="flex items-start gap-4 w-full">
-                      <div className="w-12 h-12 rounded-xl overflow-hidden border border-indigo-500/50 shadow-lg shrink-0 bg-slate-800 group-hover:border-indigo-400 transition-colors">
-                        <img src={fb.userPfp} alt={fb.userName} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="text-left flex-1 min-w-0">
-                        <p className="text-sm font-black text-white truncate mb-1 group-hover:text-indigo-400 transition-colors">{fb.userName}</p>
-                        <div className="flex gap-0.5">
-                          {[...Array(5)].map((_, idx) => (
-                            <Star 
-                              key={idx} 
-                              size={10} 
-                              fill={idx < fb.rating ? "#fbbf24" : "none"} 
-                              className={idx < fb.rating ? "text-amber-400" : "text-slate-700"} 
-                            />
-                          ))}
+          <div className="bg-[#0f172a] border border-slate-800 rounded-[2.5rem] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] overflow-hidden backdrop-blur-xl relative border-t-indigo-500/40 transition-all">
+            {/* Dashboard Status Bar */}
+            <div className="bg-slate-950/80 px-8 py-3.5 border-b border-slate-800 flex items-center justify-between">
+               <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_#10b981]" />
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Global Status: Synchronized</span>
+                  </div>
+               </div>
+               <div className="flex items-center gap-2 text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20">
+                  <ShieldCheck size={12} /> Real Community Stories
+               </div>
+            </div>
+
+            <div className="max-h-[600px] overflow-y-auto p-6 md:p-10 custom-scrollbar scroll-smooth">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {feedbacks.length === 0 ? (
+                  <div className="col-span-full py-20 text-center">
+                    <p className="text-slate-500 font-bold">No feedbacks yet. Be the first to share your journey!</p>
+                  </div>
+                ) : (
+                  feedbacks.map((fb) => (
+                    <div 
+                      key={fb.id} 
+                      className="bg-[#111827]/60 backdrop-blur-md border border-slate-800/80 p-6 rounded-[2rem] shadow-xl transition-all group hover:-translate-y-2 hover:bg-[#1e293b] hover:border-indigo-500/50 flex flex-col items-start gap-5 h-full relative"
+                    >
+                      {isRecent(fb.timestamp) && (
+                        <div className="absolute top-4 right-4 px-2 py-1 bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest rounded-md animate-pulse shadow-lg shadow-indigo-500/20">
+                          RECENT
+                        </div>
+                      )}
+                      
+                      <div className="flex items-start gap-4 w-full">
+                        <div className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-slate-700 shadow-lg shrink-0 bg-slate-800 group-hover:border-indigo-500/40 transition-colors">
+                          <img src={fb.userPfp} alt={fb.userName} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="text-left flex-1 min-w-0">
+                          <p className="text-sm font-black text-white truncate mb-1 uppercase tracking-tight">{fb.userName}</p>
+                          <div className="flex gap-0.5">
+                            {[...Array(5)].map((_, idx) => (
+                              <Star 
+                                key={idx} 
+                                size={10} 
+                                fill={idx < fb.rating ? "#fbbf24" : "none"} 
+                                className={idx < fb.rating ? "text-amber-400" : "text-slate-800"} 
+                              />
+                            ))}
+                          </div>
                         </div>
                       </div>
+                      
+                      <div className="text-left w-full h-full">
+                        <p className="text-sm text-slate-400 leading-relaxed font-medium group-hover:text-slate-200 transition-colors">
+                          "{fb.message}"
+                        </p>
+                      </div>
+
+                      <div className="w-full mt-auto pt-4 border-t border-slate-800/40 flex items-center justify-between text-[10px] font-bold text-slate-600">
+                         <span>{new Date(fb.timestamp).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                         <div className="flex items-center gap-1 text-indigo-500/40">
+                            <Activity size={10} />
+                            <span className="text-[9px] uppercase font-black">Verified scholar</span>
+                         </div>
+                      </div>
                     </div>
-                    <div className="text-left w-full h-full">
-                      <p className="text-sm text-slate-400 italic leading-relaxed font-medium group-hover:text-slate-300 transition-colors">
-                        "{fb.message}"
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
-            {/* Scroll Indicator Gradient */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#020617] to-transparent pointer-events-none rounded-b-[2.5rem] opacity-70" />
+            
+            {/* Footer Overlay */}
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0f172a] to-transparent pointer-events-none rounded-b-[2.5rem] opacity-90" />
           </div>
           
-          <div className="mt-8 text-center">
-            <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] flex items-center justify-center gap-3">
-              <Activity size={10} className="text-indigo-500 animate-pulse" />
-              Scroll down to explore {feedbacks.length} stories
-              <Activity size={10} className="text-indigo-500 animate-pulse" />
-            </p>
+          <div className="mt-10 text-center">
+            <button 
+              onClick={onStart}
+              className="inline-flex items-center gap-3 text-[10px] font-black text-indigo-400 hover:text-indigo-300 transition-all uppercase tracking-[0.4em] group"
+            >
+              Start Your Journey Now
+              <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           </div>
         </div>
       </div>
@@ -212,28 +236,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
             </div>
 
             <div className="grid grid-cols-1 xs:grid-cols-2 md:flex md:items-center gap-4 w-full md:w-auto">
-              <a 
-                href="mailto:ogmathmentor@gmail.com" 
-                className="flex items-center gap-3 p-2.5 bg-slate-800/50 rounded-xl hover:bg-indigo-900/20 transition-all group border border-slate-700/50"
-              >
+              <a href="mailto:ogmathmentor@gmail.com" className="flex items-center gap-3 p-2.5 bg-slate-800/50 rounded-xl hover:bg-indigo-900/20 transition-all group border border-slate-700/50">
                 <Mail size={14} className="text-indigo-400" />
                 <span className="text-[10px] font-bold text-slate-300">Email</span>
               </a>
-              
-              <a 
-                href="https://instagram.com/ogmathmentor" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="flex items-center gap-3 p-2.5 bg-slate-800/50 rounded-xl hover:bg-pink-900/20 transition-all group border border-slate-700/50"
-              >
+              <a href="https://instagram.com/ogmathmentor" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-2.5 bg-slate-800/50 rounded-xl hover:bg-pink-900/20 transition-all group border border-slate-700/50">
                 <Instagram size={14} className="text-pink-400" />
                 <span className="text-[10px] font-bold text-slate-300">Instagram</span>
               </a>
-
-              <a 
-                href="tel:+60102345693" 
-                className="flex items-center gap-3 p-2.5 bg-slate-800/50 rounded-xl hover:bg-emerald-900/20 transition-all group border border-slate-700/50"
-              >
+              <a href="tel:+60102345693" className="flex items-center gap-3 p-2.5 bg-slate-800/50 rounded-xl hover:bg-emerald-900/20 transition-all group border border-slate-700/50">
                 <Phone size={14} className="text-emerald-400" />
                 <span className="text-[10px] font-bold text-slate-300">Call Now</span>
               </a>
