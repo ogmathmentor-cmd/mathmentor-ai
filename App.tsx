@@ -1,3 +1,4 @@
+
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -211,6 +212,15 @@ const App: React.FC = () => {
   const [activeFocusAreas, setActiveFocusAreas] = useState<string[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(true);
 
+  const addToast = (message: string, type: 'error' | 'success' | 'info' = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  };
+
   // Load state from localStorage on mount
   useEffect(() => {
     const savedMessages = localStorage.getItem(STORAGE_KEYS.MESSAGES);
@@ -235,7 +245,17 @@ const App: React.FC = () => {
       try { setActiveFocusAreas(JSON.parse(savedFocus)); } catch (e) {}
     }
     if (savedUser) {
-      try { setUser(JSON.parse(savedUser)); } catch (e) {}
+      try { 
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+        // PERSISTENCE: Acknowledge returning users
+        setTimeout(() => {
+          addToast(language === 'BM' 
+            ? `Selamat kembali, ${parsedUser.name.split(' ')[0]}! Sedia untuk belajar lagi?` 
+            : `Welcome back, ${parsedUser.name.split(' ')[0]}! Ready for more math?`, 
+          'success');
+        }, 800);
+      } catch (e) { console.error("Failed to load user session", e); }
     }
   }, []);
 
@@ -285,15 +305,6 @@ const App: React.FC = () => {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
-  const addToast = (message: string, type: 'error' | 'success' | 'info' = 'info') => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts(prev => [...prev, { id, message, type }]);
-  };
-
-  const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  };
 
   useEffect(() => {
     if (view !== 'home') {
