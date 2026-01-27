@@ -256,7 +256,8 @@ const App: React.FC = () => {
     if (savedFeedbacks) {
       try { 
         const parsed = JSON.parse(savedFeedbacks);
-        setFeedbacks(parsed.map((f: any) => ({ ...f, timestamp: new Date(f.timestamp) })));
+        // Ensure newest is first
+        setFeedbacks(parsed.map((f: any) => ({ ...f, timestamp: new Date(f.timestamp) })).sort((a: any, b: any) => b.timestamp.getTime() - a.timestamp.getTime()));
       } catch (e) {}
     }
     if (savedUser) {
@@ -595,6 +596,8 @@ const App: React.FC = () => {
         message: text,
         timestamp: new Date()
       };
+      
+      // PREPEND to top for "Live" effect
       setFeedbacks(prev => [newFeedback, ...prev]);
       addToast("Feedback submitted successfully!", "success");
     }

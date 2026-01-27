@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { GraduationCap, Sparkles, BrainCircuit, BookOpen, Rocket, ArrowRight, Moon, Sun, Menu, User as UserIcon, Mail, Instagram, Phone, Star } from 'lucide-react';
+import { GraduationCap, Sparkles, BrainCircuit, BookOpen, Rocket, ArrowRight, Moon, Sun, Menu, User as UserIcon, Mail, Instagram, Phone, Star, Activity } from 'lucide-react';
 import { Feedback } from '../types';
 
 interface User {
@@ -20,6 +20,14 @@ interface HomeScreenProps {
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleTheme, onOpenMenu, onLogin, user, feedbacks }) => {
+  // Logic to determine if a feedback is "New" (e.g., within the last 24 hours)
+  const isRecent = (timestamp: Date) => {
+    const now = new Date();
+    const then = new Date(timestamp);
+    const diffInHours = (now.getTime() - then.getTime()) / (1000 * 60 * 60);
+    return diffInHours < 24;
+  };
+
   return (
     <div className="min-h-screen bg-[#020617] flex flex-col items-center relative overflow-x-hidden transition-colors duration-500">
       {/* Background Decorative Blurs */}
@@ -120,21 +128,33 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
         </div>
 
         {/* Feedback Section (Wall of Love Window) */}
-        <div className="w-full max-w-6xl px-4 mb-24">
-          <div className="text-center mb-10">
-             <h2 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-3">Wall of Love</h2>
-             <h3 className="text-3xl md:text-4xl font-black text-white tracking-tight">Student Success Stories</h3>
+        <div className="w-full max-w-6xl px-4 mb-24 relative">
+          <div className="text-center mb-10 flex flex-col items-center">
+             <div className="flex items-center gap-2 mb-3">
+               <span className="relative flex h-2 w-2">
+                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+               </span>
+               <h2 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Live Feed</h2>
+             </div>
+             <h3 className="text-3xl md:text-4xl font-black text-white tracking-tight">Wall of Love</h3>
           </div>
           
           {/* Scrollable Feedback Box / Window */}
-          <div className="bg-[#0f172a]/40 border border-slate-800/80 rounded-[2.5rem] p-4 md:p-8 shadow-2xl overflow-hidden backdrop-blur-sm relative">
+          <div className="bg-[#0f172a]/40 border border-slate-800 rounded-[2.5rem] p-4 md:p-8 shadow-2xl overflow-hidden backdrop-blur-sm relative border-t-indigo-500/30">
             <div className="max-h-[520px] overflow-y-auto pr-2 custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 px-2">
                 {feedbacks.map((fb, i) => (
                   <div 
                     key={fb.id} 
-                    className="bg-[#0f172a]/90 backdrop-blur-xl border border-slate-800/80 p-6 rounded-[1.5rem] shadow-xl transition-all group hover:-translate-y-2 hover:bg-[#1e293b]/80 hover:border-indigo-500/50 flex flex-col items-start gap-4 h-full"
+                    className="bg-[#0f172a]/95 backdrop-blur-2xl border border-slate-800/80 p-6 rounded-[1.5rem] shadow-xl transition-all group hover:-translate-y-2 hover:bg-[#1e293b] hover:border-indigo-500/50 flex flex-col items-start gap-4 h-full relative"
                   >
+                    {isRecent(fb.timestamp) && (
+                      <div className="absolute top-4 right-4 px-2 py-1 bg-indigo-600 text-white text-[8px] font-black uppercase tracking-widest rounded-md animate-pulse">
+                        New
+                      </div>
+                    )}
+                    
                     <div className="flex items-start gap-4 w-full">
                       <div className="w-12 h-12 rounded-xl overflow-hidden border border-indigo-500/50 shadow-lg shrink-0 bg-slate-800 group-hover:border-indigo-400 transition-colors">
                         <img src={fb.userPfp} alt={fb.userName} className="w-full h-full object-cover" />
@@ -163,14 +183,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
               </div>
             </div>
             {/* Scroll Indicator Gradient */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0f172a] to-transparent pointer-events-none rounded-b-[2.5rem] opacity-50" />
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#020617] to-transparent pointer-events-none rounded-b-[2.5rem] opacity-70" />
           </div>
           
           <div className="mt-8 text-center">
             <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] flex items-center justify-center gap-3">
-              <ArrowRight size={10} className="rotate-90 animate-bounce" />
-              Scroll to see more success stories
-              <ArrowRight size={10} className="rotate-90 animate-bounce" />
+              <Activity size={10} className="text-indigo-500 animate-pulse" />
+              Scroll down to explore {feedbacks.length} stories
+              <Activity size={10} className="text-indigo-500 animate-pulse" />
             </p>
           </div>
         </div>
