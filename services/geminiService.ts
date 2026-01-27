@@ -39,22 +39,11 @@ ${MATH_WORKING_RULES}
 ${RESPONSIVE_DIRECTIVE}
 `;
 
-const ADD_MATH_ADVANCED_DIRECTIVE = `
-### ADVANCED ADDITIONAL MATHEMATICS SPECIALIST (KSSM FORM 4 & 5):
-- You are tutoring a student in the Advanced KSSM Add Math syllabus.
-- Rigor: High. Focus on formal derivation, mathematical proofs, and precise notation.
-- FORM 4 CONCEPTS: 
-  - Functions & Inverses ($f^{-1}(x)$), 
-  - Quadratics (Completing the Square), 
-  - Surds (Rationalizing), 
-  - Progressions (Arithmetic $a + (n-1)d$ and Geometric $ar^{n-1}$, Sum to Infinity), 
-  - Linear Law (Linearizing non-linear graphs $Y = mX + c$).
-- FORM 5 CONCEPTS: 
-  - Circular Measure (Radians, $s=r\theta$, $A=1/2r^2\theta$), 
-  - Vectors (Unit vectors $\hat{r}$, dot products), 
-  - Calculus (Product rule $uv' + vu'$, Quotient rule $\frac{vu' - uv'}{v^2}$, Chain rule), 
-  - Kinematics (Displacement $s$, Velocity $v=ds/dt$, Acceleration $a=dv/dt$).
-- EXAM TIP: Always mention common pitfalls for Paper 2 high-mark questions.
+const ADD_MATH_SPECIAL_DIRECTIVE = `
+### ADDITIONAL MATHEMATICS SPECIALIST PERSONA:
+- You are an expert teacher for SPM Additional Mathematics (Form 4 & 5).
+- Syllabus: Malaysian KSSM Additional Mathematics.
+- Tone: Encouraging, precise, and exam-focused.
 `;
 
 const ESSENTIAL_MATH_DIRECTIVE = `
@@ -134,7 +123,7 @@ export const solveMathProblemStream = async (
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // All levels now use Flash model with 0 thinking budget for instant streaming
+    // FIX: All levels now use Flash model with 0 thinking budget for instant streaming
     const modelName = 'gemini-3-flash-preview';
     const thinkingBudget = 0; 
     const maxOutputTokens = 4096;
@@ -146,11 +135,11 @@ export const solveMathProblemStream = async (
     
     const currentParts: any[] = [{ text: `
 [CONTEXT]
-User Level: ${level}
-Topic Context (Sub-Level): ${subLevel || 'N/A'}
-Active Focus Chapters: ${focusAreas?.join(', ') || 'Comprehensive Mix'}
+Level: ${level}
+Sub-Level: ${subLevel || 'N/A'}
+Active Focus Areas (MMU): ${focusAreas?.join(', ') || 'General Math'}
 
-[STUDENT QUERY]
+[USER QUERY]
 ${problem}
 ` }];
 
@@ -159,15 +148,11 @@ ${problem}
 
     let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
     
-    // Dynamic syllabus selection based on level and sub-level
-    if (level === UserLevel.ADVANCED) {
-      if (subLevel?.toLowerCase().includes('essential mathematics')) {
-        systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
-      } else {
-        systemInstruction += `\n${ADD_MATH_ADVANCED_DIRECTIVE}`;
-      }
+    // Dynamic syllabus selection
+    if (subLevel?.toLowerCase().includes('essential mathematics')) {
+      systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
     } else if (subLevel?.toLowerCase().includes('add math')) {
-      systemInstruction += `\n${ADD_MATH_ADVANCED_DIRECTIVE}`;
+      systemInstruction += `\n${ADD_MATH_SPECIAL_DIRECTIVE}`;
     }
     
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
@@ -226,17 +211,13 @@ export const solveMathProblem = async (
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.text }]
     }));
-    const currentParts: any[] = [{ text: `Profile: ${level} | Sub: ${subLevel} | Focus: ${focusAreas?.join(', ')}\nQuery: ${problem}` }];
+    const currentParts: any[] = [{ text: `Profile: ${level} | Sub: ${subLevel}\nQuery: ${problem}` }];
     if (attachment) currentParts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
     contents.push({ role: 'user', parts: currentParts });
 
     let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
-    if (level === UserLevel.ADVANCED) {
-      if (subLevel?.toLowerCase().includes('essential mathematics')) {
-        systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
-      } else {
-        systemInstruction += `\n${ADD_MATH_ADVANCED_DIRECTIVE}`;
-      }
+    if (subLevel?.toLowerCase().includes('essential mathematics')) {
+      systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
     }
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
@@ -295,7 +276,7 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
   const ai = new GoogleGenAI({ apiKey: key });
   const res = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}. Focus areas: ${focusAreas?.join(', ')}` }] }],
+    contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}.` }] }],
     config: {
       systemInstruction: `Generate a math quiz in ${language} for ${level}. Output JSON.`,
       responseMimeType: "application/json",
