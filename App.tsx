@@ -1,4 +1,3 @@
-
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -541,21 +540,22 @@ const App: React.FC = () => {
         }
       });
       
-      const subject = encodeURIComponent(`MathMentor Feedback: ${rating} Stars`);
-      const body = encodeURIComponent(
+      const subject = `MathMentor Feedback: ${rating} Stars`;
+      const body = 
         `Rating: ${rating}/5 Stars\n\n` +
         `User Feedback:\n"${feedback}"\n\n` +
         `User: ${user?.name || 'Anonymous'} (${user?.email || 'No email'})\n` +
         `Learner Level: ${level}\n` +
         `Current Sub-level: ${subLevel || 'N/A'}\n` +
-        `Language: ${language}`
-      );
+        `Language: ${language}`;
 
-      window.location.href = `mailto:${destinationEmail}?subject=${subject}&body=${body}`;
+      const gmailComposeUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(destinationEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(gmailComposeUrl, '_blank');
 
     } catch (err) {
       console.error("Feedback Processing Error:", err);
-      window.location.href = `mailto:${destinationEmail}?subject=Feedback&body=${encodeURIComponent(feedback)}`;
+      const fallbackUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(destinationEmail)}&su=${encodeURIComponent('MathMentor Feedback')}&body=${encodeURIComponent(feedback)}`;
+      window.open(fallbackUrl, '_blank');
     }
   };
 
