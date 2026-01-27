@@ -127,20 +127,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
           </div>
           
           {/* Scrollable Feedback Box / Window */}
-          <div className="bg-[#0f172a]/20 border border-slate-800 rounded-[2.5rem] p-4 md:p-8 shadow-inner overflow-hidden">
+          <div className="bg-[#0f172a]/40 border border-slate-800/80 rounded-[2.5rem] p-4 md:p-8 shadow-2xl overflow-hidden backdrop-blur-sm relative">
             <div className="max-h-[520px] overflow-y-auto pr-2 custom-scrollbar">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-2 px-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 py-4 px-2">
                 {feedbacks.map((fb, i) => (
                   <div 
                     key={fb.id} 
-                    className="bg-[#0f172a]/80 backdrop-blur-xl border border-slate-800/80 p-6 rounded-[1.5rem] shadow-xl transition-all group hover:-translate-y-2 hover:bg-[#1e293b]/60 hover:border-indigo-500/40 flex flex-col items-start gap-4 h-full"
+                    className="bg-[#0f172a]/90 backdrop-blur-xl border border-slate-800/80 p-6 rounded-[1.5rem] shadow-xl transition-all group hover:-translate-y-2 hover:bg-[#1e293b]/80 hover:border-indigo-500/50 flex flex-col items-start gap-4 h-full"
                   >
                     <div className="flex items-start gap-4 w-full">
-                      <div className="w-12 h-12 rounded-xl overflow-hidden border border-indigo-500/50 shadow-md shrink-0 bg-slate-800">
+                      <div className="w-12 h-12 rounded-xl overflow-hidden border border-indigo-500/50 shadow-lg shrink-0 bg-slate-800 group-hover:border-indigo-400 transition-colors">
                         <img src={fb.userPfp} alt={fb.userName} className="w-full h-full object-cover" />
                       </div>
                       <div className="text-left flex-1 min-w-0">
-                        <p className="text-sm font-black text-white truncate mb-1">{fb.userName}</p>
+                        <p className="text-sm font-black text-white truncate mb-1 group-hover:text-indigo-400 transition-colors">{fb.userName}</p>
                         <div className="flex gap-0.5">
                           {[...Array(5)].map((_, idx) => (
                             <Star 
@@ -154,7 +154,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
                       </div>
                     </div>
                     <div className="text-left w-full h-full">
-                      <p className="text-sm text-slate-400 italic leading-relaxed font-medium">
+                      <p className="text-sm text-slate-400 italic leading-relaxed font-medium group-hover:text-slate-300 transition-colors">
                         "{fb.message}"
                       </p>
                     </div>
@@ -162,10 +162,16 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
                 ))}
               </div>
             </div>
+            {/* Scroll Indicator Gradient */}
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0f172a] to-transparent pointer-events-none rounded-b-[2.5rem] opacity-50" />
           </div>
           
           <div className="mt-8 text-center">
-            <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">Scroll to see more success stories</p>
+            <p className="text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] flex items-center justify-center gap-3">
+              <ArrowRight size={10} className="rotate-90 animate-bounce" />
+              Scroll to see more success stories
+              <ArrowRight size={10} className="rotate-90 animate-bounce" />
+            </p>
           </div>
         </div>
       </div>

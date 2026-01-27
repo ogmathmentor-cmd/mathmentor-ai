@@ -10,23 +10,23 @@ interface FeedbackModalProps {
   onSignIn: () => void;
 }
 
-// Slur Filter Dictionary
+// Slur Filter Dictionary - Censors offensive language
 const SLURS = [
-  /n[i1]gga/gi,
-  /bodoh/gi,
-  /babi/gi,
-  /anjing/gi,
-  /pukimak/gi,
-  /pantat/gi,
-  /sial/gi,
-  /stupid/gi,
-  /bastard/gi,
-  /fuc?k/gi,
-  /shit/gi,
-  /dick/gi,
-  /pussy/gi,
-  /bangang/gi,
-  /celaka/gi
+  /n[i1g]{2,}a/gi,      // nigga, n1gga, etc.
+  /b[o0]d[o0]h/gi,      // bodoh
+  /b[a4]b[i1]/gi,       // babi
+  /anj[i1]ng/gi,        // anjing
+  /puk[i1]m[a4]k/gi,    // pukimak
+  /p[a4]nt[a4]t/gi,     // pantat
+  /s[i1][a4]l/gi,       // sial
+  /st[u0]p[i1]d/gi,     // stupid
+  /b[a4]st[a4]rd/gi,    // bastard
+  /f[u*]{1,}ck/gi,      // fuck
+  /sh[i1]t/gi,          // shit
+  /d[i1]ck/gi,          // dick
+  /p[u*]{1,}ssy/gi,     // pussy
+  /b[a4]ng[a4]ng/gi,    // bangang
+  /c[e3]l[a4]k[a4]/gi   // celaka
 ];
 
 const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit, user, onSignIn }) => {
@@ -51,6 +51,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
     // Apply censorship before submission
     const safeFeedback = applyCensorship(feedback);
 
+    // Pass safe data to parent for local "database" storage
     onSubmit(safeFeedback, rating);
     
     // Clear form and close
