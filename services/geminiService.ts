@@ -32,7 +32,8 @@ You are a professional, friendly human-like math tutor. Your goal is to ensure t
 
 ### CONSTRAINTS:
 - Language: [LANGUAGE_TOKEN]. 
-- Math: ALWAYS use LaTeX ($...$ or $$...$$).
+- Math: ALWAYS use LaTeX ($...$ or $$...$$) for formulas.
+- Currency: ALWAYS escape literal dollar signs for money (e.g., use \\$60 instead of $60). This is CRITICAL to avoid broken formatting.
 - Preservation: Do NOT translate variables/formulas.
 ${MATH_WORKING_RULES}
 ${RESPONSIVE_DIRECTIVE}
@@ -73,7 +74,8 @@ const MODE_INSTRUCTIONS: Record<ChatMode, string> = {
 
   exam: `MODE: EXAM. 
 - Focus on formal derivation and precision.
-- Include "Marking Tips" or pitfall warnings.`,
+- Include "Marking Tips" or pitfall warnings.
+- DO NOT use triple backticks (\`\`\`) for text explanations or tips; only use them for actual code if necessary.`,
 
   fast: `MODE: FAST ANSWER.
 STRICT: Output ONLY LaTeX math steps ($$ ... $$) and the final answer. No words.`

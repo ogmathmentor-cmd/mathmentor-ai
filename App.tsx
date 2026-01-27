@@ -1,4 +1,3 @@
-
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -229,7 +228,7 @@ const App: React.FC = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Load state from localStorage on mount
+  // Load state from localStorage on mount & Initialize Firebase Listeners
   useEffect(() => {
     const savedMessages = localStorage.getItem(STORAGE_KEYS.MESSAGES);
     const savedLevel = localStorage.getItem(STORAGE_KEYS.LEVEL);
@@ -238,7 +237,6 @@ const App: React.FC = () => {
     const savedChatmode = localStorage.getItem(STORAGE_KEYS.CHATMODE);
     const savedFocus = localStorage.getItem(STORAGE_KEYS.FOCUS_AREAS);
     const savedUser = localStorage.getItem(STORAGE_KEYS.USER_SESSION);
-    const savedFeedbacks = localStorage.getItem(STORAGE_KEYS.FEEDBACKS);
 
     if (savedMessages) {
       try {
@@ -253,12 +251,6 @@ const App: React.FC = () => {
     if (savedFocus) {
       try { setActiveFocusAreas(JSON.parse(savedFocus)); } catch (e) {}
     }
-    if (savedFeedbacks) {
-      try { 
-        const parsed = JSON.parse(savedFeedbacks);
-        setFeedbacks(parsed.map((f: any) => ({ ...f, timestamp: new Date(f.timestamp) })));
-      } catch (e) {}
-    }
     if (savedUser) {
       try { 
         const parsedUser = JSON.parse(savedUser);
@@ -271,12 +263,28 @@ const App: React.FC = () => {
         }, 800);
       } catch (e) { console.error("Failed to load user session", e); }
     }
-  }, []);
 
-  // Save feedbacks
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.FEEDBACKS, JSON.stringify(feedbacks));
-  }, [feedbacks]);
+    // FIREBASE SYNC: Listen for live feedbacks for the "Wall of Love"
+    if (window.firebaseDatabase) {
+      const feedbackRef = window.firebaseDatabase.ref('liveFeedback');
+      const listener = feedbackRef.limitToLast(20).on('value', (snapshot: any) => {
+        const data = snapshot.val();
+        if (data) {
+          const liveFeedbacks: Feedback[] = Object.entries(data).map(([id, val]: [string, any]) => ({
+            id,
+            userName: val.userName,
+            userPfp: `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${val.avatarSeed || val.userName}`,
+            rating: val.rating || 5, // Default to 5 if coming from quick chat
+            message: val.message,
+            timestamp: new Date(val.timestamp)
+          })).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+          
+          setFeedbacks([...liveFeedbacks, ...DEFAULT_FEEDBACKS]);
+        }
+      });
+      return () => feedbackRef.off('value', listener);
+    }
+  }, []);
 
   // Save state to localStorage on changes
   useEffect(() => {
@@ -577,18 +585,26 @@ const App: React.FC = () => {
     addToast("Logged out successfully.", "success");
   };
 
-  const handleSubmitFeedback = (text: string, rating: number) => {
-    if (user) {
-      const newFeedback: Feedback = {
-        id: Math.random().toString(36).substring(7),
-        userName: user.name,
-        userPfp: user.pfp,
-        rating,
-        message: text,
-        timestamp: new Date()
-      };
-      setFeedbacks(prev => [newFeedback, ...prev]);
-      addToast("Feedback submitted successfully!", "success");
+  const handleSubmitFeedback = async (text: string, rating: number) => {
+    if (!user) return;
+
+    // Push to Firebase for real-time Wall of Love updates
+    if (window.firebaseDatabase) {
+      try {
+        const feedbackRef = window.firebaseDatabase.ref('liveFeedback');
+        const newMessageRef = feedbackRef.push();
+        await newMessageRef.set({
+          userName: user.name,
+          message: text,
+          rating: rating,
+          timestamp: Date.now(),
+          avatarSeed: user.name.toLowerCase()
+        });
+        addToast("Feedback shared with the community!", "success");
+      } catch (err) {
+        console.error("Firebase Sync Error:", err);
+        addToast("Local submission successful, but network sync failed.", "info");
+      }
     }
   };
 

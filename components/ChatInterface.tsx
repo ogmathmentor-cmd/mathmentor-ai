@@ -107,14 +107,28 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
     p: ({ children }: any) => <p className="mb-4 leading-relaxed font-medium tracking-tight text-slate-700 dark:text-slate-200">{children}</p>,
     strong: ({ children }: any) => <strong className="font-black text-indigo-600 dark:text-indigo-400">{children}</strong>,
     li: ({ children }: any) => <li className="mb-2 ml-4 list-disc text-slate-700 dark:text-slate-200">{children}</li>,
-    code: ({ children, inline }: any) => (
-      inline 
-        ? <code className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono text-[0.9em] border border-slate-200 dark:border-slate-700">{children}</code>
-        : <div className="my-6 p-6 bg-slate-50 dark:bg-black/30 rounded-3xl border border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-xl overflow-x-auto custom-scrollbar gap-2 transition-all hover:bg-white dark:hover:bg-black/50 shadow-inner">
-            {children}
+    code: ({ children, inline, className }: any) => {
+      const isMath = className?.includes('language-math');
+      if (isMath && !inline) {
+        return (
+          <div className="my-4 p-4 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex flex-col items-center justify-center overflow-x-auto custom-scrollbar">
+            <MathRenderer latex={String(children).replace(/\n$/, '')} displayMode={true} className="text-lg md:text-xl" />
           </div>
+        );
+      }
+      return inline 
+        ? <code className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono text-[0.9em] border border-slate-200 dark:border-slate-700">{children}</code>
+        : <div className="my-4 overflow-x-auto custom-scrollbar">
+            <pre className="p-4 bg-slate-50 dark:bg-black/30 rounded-2xl border border-slate-200 dark:border-slate-800 font-mono text-xs md:text-sm leading-relaxed text-left transition-all hover:bg-white dark:hover:bg-black/50 shadow-inner">
+              <code>{children}</code>
+            </pre>
+          </div>
+    },
+    math: ({ value }: any) => (
+      <div className="my-4 p-4 bg-slate-50/50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 flex flex-col items-center justify-center overflow-x-auto custom-scrollbar group relative">
+        <MathRenderer latex={value} displayMode={true} className="text-lg md:text-xl" />
+      </div>
     ),
-    math: ({ value }: any) => <MathRenderer latex={value} displayMode={true} />,
     inlineMath: ({ value }: any) => <MathRenderer latex={value} displayMode={false} />
   };
 
