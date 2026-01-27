@@ -39,12 +39,22 @@ ${MATH_WORKING_RULES}
 ${RESPONSIVE_DIRECTIVE}
 `;
 
-const ADD_MATH_SPECIAL_DIRECTIVE = `
-### ADDITIONAL MATHEMATICS SPECIALIST PERSONA:
-- You are an expert teacher for SPM Additional Mathematics (Form 4 & 5).
-- Syllabus: Malaysian KSSM Additional Mathematics.
-- Tone: Encouraging, precise, and exam-focused.
-- Topics: Calculus, Matrices, Vectors, Circular Measure, Trigonometric Functions, etc.
+const ADD_MATH_ADVANCED_DIRECTIVE = `
+### ADVANCED ADDITIONAL MATHEMATICS SPECIALIST (KSSM FORM 4 & 5):
+- You are tutoring a student in the Advanced KSSM Add Math syllabus.
+- Rigor: High. Focus on formal derivation, mathematical proofs, and precise notation.
+- FORM 4 CONCEPTS: 
+  - Functions & Inverses ($f^{-1}(x)$), 
+  - Quadratics (Completing the Square), 
+  - Surds (Rationalizing), 
+  - Progressions (Arithmetic $a + (n-1)d$ and Geometric $ar^{n-1}$, Sum to Infinity), 
+  - Linear Law (Linearizing non-linear graphs $Y = mX + c$).
+- FORM 5 CONCEPTS: 
+  - Circular Measure (Radians, $s=r\theta$, $A=1/2r^2\theta$), 
+  - Vectors (Unit vectors $\hat{r}$, dot products), 
+  - Calculus (Product rule $uv' + vu'$, Quotient rule $\frac{vu' - uv'}{v^2}$, Chain rule), 
+  - Kinematics (Displacement $s$, Velocity $v=ds/dt$, Acceleration $a=dv/dt$).
+- EXAM TIP: Always mention common pitfalls for Paper 2 high-mark questions.
 `;
 
 const ESSENTIAL_MATH_DIRECTIVE = `
@@ -59,7 +69,7 @@ You are tutoring a student using the Multimedia University (MMU) Essential Mathe
    - $3 \times 3$ INVERSE MUST follow: Minor Matrix ($M$) -> Cofactor Matrix ($C$) -> Adjoint ($C^T$) -> Determinant ($|A|$) -> $A^{-1} = \frac{1}{|A|} adj(A)$.
    - Use Inverse Method ($X = A^{-1}B$) for systems.
 3. **CH 5/6: CALCULUS**: 
-   - Rules: Power, Product ($uv' + v u'$), Quotient ($\frac{v u' - u v'}{v^2}$), and Chain Rule.
+   - Rules: Power, Product ($uv' + vu'$), Quotient ($\frac{vu' - uv'}{v^2}$), and Chain Rule.
    - Integration: Always include $+ c$ and show u-substitution steps clearly ($u=...$, $du=...$).
 
 ### STYLE:
@@ -90,9 +100,6 @@ export interface MathResponse {
 
 const handleApiError = (error: any, language: Language): string => {
   console.error("Gemini API Error:", error);
-  const msg = error?.message || "";
-  if (msg.includes("API_KEY_INVALID")) return language === 'BM' ? "Kunci API tidak sah. Sila periksa tetapan anda." : "Invalid API Key. Please check your settings.";
-  if (msg.includes("429")) return language === 'BM' ? "Terlalu banyak permintaan. Sila tunggu sebentar." : "Too many requests. Please wait a moment.";
   return language === 'BM' ? "Sistem AI sedang sibuk. Sila cuba lagi sebentar." : "The AI is currently busy. Please try again in a few moments.";
 };
 
@@ -127,13 +134,10 @@ export const solveMathProblemStream = async (
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // Advanced and OpenAI levels use the Pro model for deep reasoning
-    const isAdvanced = level === UserLevel.ADVANCED || level === UserLevel.OPENAI;
-    const modelName = isAdvanced ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
-    
-    // Thinking budget is enabled for Advanced level to solve complex calculus/matrices
-    const thinkingBudget = isAdvanced ? 4000 : 0; 
-    const maxOutputTokens = isAdvanced ? 8000 : 4096;
+    // All levels now use Flash model with 0 thinking budget for instant streaming
+    const modelName = 'gemini-3-flash-preview';
+    const thinkingBudget = 0; 
+    const maxOutputTokens = 4096;
 
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -143,73 +147,56 @@ export const solveMathProblemStream = async (
     const currentParts: any[] = [{ text: `
 [CONTEXT]
 User Level: ${level}
-Sub-Level/Class: ${subLevel || 'General'}
-Active Focus Areas: ${focusAreas?.join(', ') || 'N/A'}
-Instruction Preference: ${socraticEnabled ? 'Socratic (ask questions)' : 'Direct (provide solution)'}
+Topic Context (Sub-Level): ${subLevel || 'N/A'}
+Active Focus Chapters: ${focusAreas?.join(', ') || 'Comprehensive Mix'}
 
-[USER QUERY]
+[STUDENT QUERY]
 ${problem}
 ` }];
 
-    if (attachment) {
-      currentParts.push({ 
-        inlineData: { 
-          mimeType: attachment.mimeType, 
-          data: attachment.data 
-        } 
-      });
-    }
-    
+    if (attachment) currentParts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
     contents.push({ role: 'user', parts: currentParts });
 
     let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
     
-    // Dynamic syllabus selection based on user sub-level
-    if (subLevel?.toLowerCase().includes('essential mathematics')) {
-      systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
+    // Dynamic syllabus selection based on level and sub-level
+    if (level === UserLevel.ADVANCED) {
+      if (subLevel?.toLowerCase().includes('essential mathematics')) {
+        systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
+      } else {
+        systemInstruction += `\n${ADD_MATH_ADVANCED_DIRECTIVE}`;
+      }
     } else if (subLevel?.toLowerCase().includes('add math')) {
-      systemInstruction += `\n${ADD_MATH_SPECIAL_DIRECTIVE}`;
-    } else if (level === UserLevel.ADVANCED) {
-      systemInstruction += `\n${ADD_MATH_SPECIAL_DIRECTIVE}`;
+      systemInstruction += `\n${ADD_MATH_ADVANCED_DIRECTIVE}`;
     }
     
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
     const config: any = {
       systemInstruction,
-      temperature: mode === 'fast' ? 0.0 : 0.4,
+      temperature: mode === 'fast' ? 0.0 : 0.2,
       maxOutputTokens,
       tools: (level === UserLevel.OPENAI) ? [{ googleSearch: {} }] : [],
     };
-    
-    if (thinkingBudget > 0) {
-      config.thinkingConfig = { thinkingBudget };
-    }
+    if (thinkingBudget > 0) config.thinkingConfig = { thinkingBudget };
 
     const stream = await ai.models.generateContentStream({ model: modelName, contents, config });
     let fullText = "";
     const citations: Citation[] = [];
-    
     for await (const chunk of stream) {
       const textChunk = chunk.text || "";
       fullText += textChunk;
       onChunk(fullText);
-      
-      // Extract Google Search grounding if available (OpenAI level)
       if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
         for (const gChunk of chunk.candidates[0].groundingMetadata.groundingChunks) {
           if (gChunk.web && !citations.find(c => c.uri === gChunk.web?.uri)) {
-            citations.push({ 
-              title: gChunk.web.title || 'Source', 
-              uri: gChunk.web.uri 
-            });
+            citations.push({ title: gChunk.web.title || 'Source', uri: gChunk.web.uri });
           }
         }
       }
     }
     return { text: fullText, citations, isError: false };
   };
-
   try {
     return await withRetry(executeCall);
   } catch (error) {
@@ -231,40 +218,35 @@ export const solveMathProblem = async (
 ): Promise<MathResponse> => {
   const key = process.env.API_KEY;
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
-  
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    const isAdvanced = level === UserLevel.ADVANCED || level === UserLevel.OPENAI;
-    const modelName = isAdvanced ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+    const modelName = 'gemini-3-flash-preview';
     
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.text }]
     }));
-    
-    const currentParts: any[] = [{ text: `Level: ${level} | Sub: ${subLevel}\nQuery: ${problem}` }];
+    const currentParts: any[] = [{ text: `Profile: ${level} | Sub: ${subLevel} | Focus: ${focusAreas?.join(', ')}\nQuery: ${problem}` }];
     if (attachment) currentParts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
     contents.push({ role: 'user', parts: currentParts });
 
     let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
-    if (subLevel?.toLowerCase().includes('essential mathematics')) {
-      systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
+    if (level === UserLevel.ADVANCED) {
+      if (subLevel?.toLowerCase().includes('essential mathematics')) {
+        systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
+      } else {
+        systemInstruction += `\n${ADD_MATH_ADVANCED_DIRECTIVE}`;
+      }
     }
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
     const response = await ai.models.generateContent({ 
       model: modelName, 
       contents, 
-      config: { 
-        systemInstruction, 
-        temperature: 0.2, 
-        maxOutputTokens: 4096,
-        thinkingConfig: isAdvanced ? { thinkingBudget: 2000 } : undefined
-      } 
+      config: { systemInstruction, temperature: 0.2, maxOutputTokens: 4096 } 
     });
     return { text: response.text || "", citations: [], isError: false };
   };
-
   try {
     return await withRetry(executeCall);
   } catch (error) {
@@ -275,22 +257,17 @@ export const solveMathProblem = async (
 export const generateStudyNotes = async (files: FileAttachment[], language: Language): Promise<string> => {
   const key = process.env.API_KEY;
   if (!key) return "API Key missing.";
-  
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    const parts: any[] = [{ text: "Synthesize core concepts into a compact study sheet with clear LaTeX math formulas." }];
+    const parts: any[] = [{ text: "Synthesize core concepts into a compact study sheet." }];
     files.forEach(f => parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } }));
-    
     const res = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts }],
-      config: { 
-        systemInstruction: "You are an expert academic writer. Create a compact, highly organized study sheet using LaTeX. Language: " + language 
-      }
+      config: { systemInstruction: "Create a compact study sheet. Language: " + language }
     });
     return res.text || "";
   };
-
   try {
     return await withRetry(executeCall);
   } catch (error) {
@@ -301,17 +278,13 @@ export const generateStudyNotes = async (files: FileAttachment[], language: Lang
 export const generateIllustration = async (prompt: string, size: ImageSize = '1K', isManualHighRes = false): Promise<string | null> => {
   const key = process.env.API_KEY;
   if (!key) return null;
-  
   const ai = new GoogleGenAI({ apiKey: key });
-  // Use specialized image generation model
   const model = 'gemini-2.5-flash-image';
-  
   const res = await ai.models.generateContent({
     model,
-    contents: { parts: [{ text: `Scientific mathematical diagram, minimalist, clean white background, high contrast: ${prompt}` }] },
+    contents: { parts: [{ text: `Minimal math diagram: ${prompt}` }] },
     config: { imageConfig: { aspectRatio: "1:1" } }
   });
-  
   const part = res.candidates?.[0]?.content?.parts.find(p => p.inlineData);
   return part ? `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` : null;
 };
@@ -319,13 +292,12 @@ export const generateIllustration = async (prompt: string, size: ImageSize = '1K
 export const generateQuiz = async (topic: string, level: UserLevel, language: Language, difficulty: QuizDifficulty = 'medium', focusAreas?: string[]): Promise<Quiz> => {
   const key = process.env.API_KEY;
   if (!key) throw new Error("API Key missing.");
-  
   const ai = new GoogleGenAI({ apiKey: key });
   const res = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
-    contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}. Include mathematical expressions in LaTeX.` }] }],
+    contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}. Focus areas: ${focusAreas?.join(', ')}` }] }],
     config: {
-      systemInstruction: `Generate a math quiz in ${language} for student level ${level}. Output ONLY valid JSON matching the provided schema.`,
+      systemInstruction: `Generate a math quiz in ${language} for ${level}. Output JSON.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,

@@ -1,3 +1,4 @@
+
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -52,7 +53,7 @@ const PRIMARY_TRANSLATIONS: Record<string, string> = {
   'Data Handling and Likelihood': 'Pengendalian Data dan Kebarangkalian'
 };
 
-const KSSM_INTERMEDIATE_DATA: Record<string, { EN: string[], BM: string[] }> = {
+const KSSM_SYLLABUS_DATA: Record<string, { EN: string[], BM: string[] }> = {
   'Form 1': {
     EN: ['Rational Numbers', 'Factors & Multiples', 'Squares, Roots, Cubes', 'Ratios, Rates & Proportions', 'Algebraic Expressions', 'Linear Equations', 'Geometry & Area', 'Data Handling'],
     BM: ['Nombor Rasional', 'Faktor & Gandaan', 'Kuasa Dua, Punca Kuasa Dua, Kuasa Tiga & Punca Kuasa Tiga', 'Nisbah, Kadar & Perkadaran', 'Ungkapan Algebra', 'Persamaan Linear', 'Geometri & Luas', 'Pengendalian Data']
@@ -345,9 +346,9 @@ const App: React.FC = () => {
   const currentFocusOptions = useMemo(() => {
     if (level === UserLevel.OPENAI) return [];
     
-    // Check if subLevel corresponds to KSSM/Add Math data
-    if (subLevel && KSSM_INTERMEDIATE_DATA[subLevel]) {
-      const labels = KSSM_INTERMEDIATE_DATA[subLevel][language];
+    // Check if subLevel corresponds to KSSM syllabus data (Intermediate & Advanced)
+    if (subLevel && KSSM_SYLLABUS_DATA[subLevel]) {
+      const labels = KSSM_SYLLABUS_DATA[subLevel][language];
       return labels.map((label, idx) => ({
         label,
         color: `${LEVEL_COLORS[idx % LEVEL_COLORS.length]} text-white shadow-sm`,
@@ -355,7 +356,7 @@ const App: React.FC = () => {
       }));
     }
 
-    // Default to mapped focus areas for standard levels
+    // Default to mapped focus areas for other levels (e.g. Primary/Essential)
     let options = (subLevel && SUB_LEVEL_FOCUS_MAP[subLevel]) 
       ? [...SUB_LEVEL_FOCUS_MAP[subLevel]] 
       : [...(LEVEL_FOCUS_MAP[level] || [])];
@@ -679,12 +680,12 @@ const App: React.FC = () => {
             <QuickNotesView language={language} onBack={() => setView('app')} />
           ) : (
             <main className="flex-1 max-w-full mx-auto w-full p-0 md:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-0 md:gap-6 overflow-hidden h-full">
-              {/* Sidebar Left: Focus Areas (Hidden on mobile) */}
+              {/* Sidebar Left: Focus Areas (Enabled for both Intermediate and Advanced levels) */}
               {level !== UserLevel.OPENAI && (
                 <div className={`hidden lg:flex flex-col gap-6 transition-all duration-500 ease-in-out ${isFocusMinimized ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
                   <div className={`bg-white dark:bg-[#0f172a] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 overflow-hidden h-full flex flex-col transition-all duration-500`}>
                     <div className={`flex items-center justify-between mb-6 w-full`}>
-                      {!isFocusMinimized && <h2 className="text-xs font-black flex items-center gap-2 tracking-[0.1em] text-slate-800 dark:text-slate-200 uppercase"><Sparkles size={16} className="text-indigo-600" /> Focus Areas</h2>}
+                      {!isFocusMinimized && <h2 className="text-xs font-black flex items-center gap-2 tracking-[0.1em] text-slate-800 dark:text-slate-200 uppercase"><Sparkles size={16} className="text-indigo-600" /> Focus Chapters</h2>}
                       <button onClick={() => { setIsFocusMinimized(!isFocusMinimized); }} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400">
                         {isFocusMinimized ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
                       </button>
@@ -705,12 +706,12 @@ const App: React.FC = () => {
                 </div>
               )}
 
-              {/* Center Panes: Chat Interface (Expanded on mobile) */}
+              {/* Center Panes: Chat Interface */}
               <div className={`flex flex-col h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:col-span-12' : (isFocusMinimized ? 'lg:col-span-8' : 'lg:col-span-7')}`}>
                 <ChatInterface messages={messages} onSendMessage={handleSendMessage} isLoading={isLoading} level={level} activeMode={chatMode} setActiveMode={setChatMode} onError={addToast} language={language} />
               </div>
 
-              {/* Sidebar Right: Quiz Center (Hidden on mobile per request) */}
+              {/* Sidebar Right: Quiz Center */}
               <div className={`hidden lg:block ${level === UserLevel.OPENAI ? 'lg:hidden' : 'lg:col-span-3'} h-full overflow-hidden`}>
                   <ToolsPanel level={level} subLevel={subLevel} setLevel={handleLevelChange} activeFocusAreas={activeFocusAreas} toggleFocusArea={toggleFocusArea} focusOptions={currentFocusOptions} language={language} />
               </div>
