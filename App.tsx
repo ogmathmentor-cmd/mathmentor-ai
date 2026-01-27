@@ -1,4 +1,3 @@
-
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -15,7 +14,7 @@ import QuickNotesView from './components/QuickNotesView';
 import Toast from './components/Toast';
 import { solveMathProblemStream, generateIllustration } from './services/geminiService';
 import { GoogleGenAI } from "@google/genai";
-import { Sparkles, ChevronLeft, ChevronRight, WifiOff, Shield } from 'lucide-react';
+import { Sparkles, ChevronLeft, ChevronRight, WifiOff } from 'lucide-react';
 
 interface FocusArea {
   label: string;
@@ -393,11 +392,9 @@ const App: React.FC = () => {
   const handleKeySelection = async () => {
     const isKeySelected = await (window as any).aistudio.hasSelectedApiKey();
     if (!isKeySelected) {
-      addToast("Pro Models require a personal API key. Please select your key.", "info");
+      addToast("Pro Models require a paid API key. Please select your key.", "info");
       await (window as any).aistudio.openSelectKey();
-      return true;
     }
-    return false;
   };
 
   const executeSolve = async (text: string, mode: ChatMode, attachment?: FileAttachment, manualImage?: string, history: Message[] = []) => {
@@ -412,7 +409,8 @@ const App: React.FC = () => {
       return;
     }
 
-    const isPro = level === UserLevel.ADVANCED || level === UserLevel.OPENAI;
+    // Handle Pro level requirements
+    const isPro = level === UserLevel.ADVANCED || level === UserLevel.OPENAI || (subLevel?.includes('Add Math') || subLevel?.includes('Essential'));
     if (isPro) {
       await handleKeySelection();
     }
@@ -660,13 +658,6 @@ const App: React.FC = () => {
               <WifiOff size={12} /> Offline Mode - Some features restricted
             </div>
           )}
-
-          {level === UserLevel.ADVANCED && (
-            <div className="bg-indigo-600/10 dark:bg-indigo-900/10 border-b border-indigo-600/20 px-4 py-1 flex items-center justify-center gap-2">
-               <Shield size={12} className="text-indigo-600 dark:text-indigo-400" />
-               <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Advanced Mode: Enhanced Reasoning Active</span>
-            </div>
-          )}
           
           {view === 'settings' ? (
             <SettingsView 
@@ -705,7 +696,7 @@ const App: React.FC = () => {
                           <div key={area.label} onClick={() => toggleFocusArea(area.label)} className="group cursor-pointer">
                             <div className="flex items-center justify-between mb-1.5">
                                <span className={`text-[12px] font-bold ${activeFocusAreas.includes(area.label) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'} transition-colors`}>{area.label}</span>
-                               <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${activeFocusAreas.includes(area.label) ? area.color : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500'}`}>{activeFocusAreas.includes(area.label) ? (language === 'BM' ? 'Aktif' : 'ACTIVE') : (language === 'BM' ? 'Sedia' : 'READY')}</span>
+                               <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${activeFocusAreas.includes(area.label) ? area.color : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'}`}>{activeFocusAreas.includes(area.label) ? (language === 'BM' ? 'Aktif' : 'ACTIVE') : (language === 'BM' ? 'Sedia' : 'READY')}</span>
                             </div>
                           </div>
                         ))}
