@@ -1,3 +1,4 @@
+
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -14,7 +15,7 @@ import QuickNotesView from './components/QuickNotesView';
 import Toast from './components/Toast';
 import { solveMathProblemStream, generateIllustration } from './services/geminiService';
 import { GoogleGenAI } from "@google/genai";
-import { Sparkles, ChevronLeft, ChevronRight, WifiOff } from 'lucide-react';
+import { Sparkles, ChevronLeft, ChevronRight, WifiOff, Shield } from 'lucide-react';
 
 interface FocusArea {
   label: string;
@@ -392,9 +393,11 @@ const App: React.FC = () => {
   const handleKeySelection = async () => {
     const isKeySelected = await (window as any).aistudio.hasSelectedApiKey();
     if (!isKeySelected) {
-      addToast("Pro Models require a paid API key. Please select your key.", "info");
+      addToast("Pro Models require a personal API key. Please select your key.", "info");
       await (window as any).aistudio.openSelectKey();
+      return true;
     }
+    return false;
   };
 
   const executeSolve = async (text: string, mode: ChatMode, attachment?: FileAttachment, manualImage?: string, history: Message[] = []) => {
@@ -655,6 +658,13 @@ const App: React.FC = () => {
           {!isOnline && (
             <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-1 px-4 flex items-center justify-center gap-2">
               <WifiOff size={12} /> Offline Mode - Some features restricted
+            </div>
+          )}
+
+          {level === UserLevel.ADVANCED && (
+            <div className="bg-indigo-600/10 dark:bg-indigo-900/10 border-b border-indigo-600/20 px-4 py-1 flex items-center justify-center gap-2">
+               <Shield size={12} className="text-indigo-600 dark:text-indigo-400" />
+               <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Advanced Mode: Enhanced Reasoning Active</span>
             </div>
           )}
           

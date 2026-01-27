@@ -7,7 +7,7 @@ import { UserLevel, Message, FileAttachment, Quiz, ChatMode, ImageSize, Citation
 const RESPONSIVE_DIRECTIVE = `
 ### RESPONSIVENESS & FAILSAFE:
 - ALWAYS produce a response. NEVER remain silent.
-- Prioritize immediate streaming. Do not pause for long thinking steps.
+- Prioritize accuracy and deep reasoning for complex problems.
 `;
 
 const MATH_WORKING_RULES = `
@@ -89,6 +89,12 @@ export interface MathResponse {
 
 const handleApiError = (error: any, language: Language): string => {
   console.error("Gemini API Error:", error);
+  const msg = error?.message || "";
+  if (msg.includes("Requested entity was not found")) {
+    return language === 'BM' 
+      ? "Sila pilih API Key yang sah dari projek Google Cloud yang mempunyai bil berbayar untuk menggunakan model Pro." 
+      : "Please select a valid API Key from a Google Cloud project with billing enabled to use Pro models.";
+  }
   return language === 'BM' ? "Sistem AI sedang sibuk. Sila cuba lagi sebentar." : "The AI is currently busy. Please try again in a few moments.";
 };
 
@@ -123,10 +129,11 @@ export const solveMathProblemStream = async (
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // FIX: All levels now use Flash model with 0 thinking budget for instant streaming
-    const modelName = 'gemini-3-flash-preview';
-    const thinkingBudget = 0; 
-    const maxOutputTokens = 4096;
+    const isProLevel = level === UserLevel.ADVANCED || level === UserLevel.OPENAI;
+    const modelName = isProLevel ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+    
+    // Set thinking budget if Reasoning Mode is "deep"
+    const thinkingBudget = reasoningMode === 'deep' ? (isProLevel ? 32768 : 16000) : 0;
 
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -138,6 +145,7 @@ export const solveMathProblemStream = async (
 Level: ${level}
 Sub-Level: ${subLevel || 'N/A'}
 Active Focus Areas (MMU): ${focusAreas?.join(', ') || 'General Math'}
+Reasoning Mode: ${reasoningMode}
 
 [USER QUERY]
 ${problem}
@@ -148,7 +156,6 @@ ${problem}
 
     let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
     
-    // Dynamic syllabus selection
     if (subLevel?.toLowerCase().includes('essential mathematics')) {
       systemInstruction += `\n${ESSENTIAL_MATH_DIRECTIVE}`;
     } else if (subLevel?.toLowerCase().includes('add math')) {
@@ -157,13 +164,24 @@ ${problem}
     
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
+    if (level === UserLevel.OPENAI) {
+      systemInstruction += `\n### RESEARCH ASSISTANT MODE:
+      - Use Google Search to find the latest mathematical research or real-world applications if relevant.
+      - Provide citations for your sources.`;
+    }
+
     const config: any = {
       systemInstruction,
-      temperature: mode === 'fast' ? 0.0 : 0.2,
-      maxOutputTokens,
+      temperature: mode === 'fast' ? 0.0 : 0.3,
       tools: (level === UserLevel.OPENAI) ? [{ googleSearch: {} }] : [],
     };
-    if (thinkingBudget > 0) config.thinkingConfig = { thinkingBudget };
+    
+    // Avoid setting maxOutputTokens alongside thinkingBudget to prevent collision
+    if (thinkingBudget > 0) {
+      config.thinkingConfig = { thinkingBudget };
+    } else {
+      config.maxOutputTokens = 8192;
+    }
 
     const stream = await ai.models.generateContentStream({ model: modelName, contents, config });
     let fullText = "";
@@ -205,13 +223,14 @@ export const solveMathProblem = async (
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    const modelName = 'gemini-3-flash-preview';
+    const isProLevel = level === UserLevel.ADVANCED || level === UserLevel.OPENAI;
+    const modelName = isProLevel ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.text }]
     }));
-    const currentParts: any[] = [{ text: `Profile: ${level} | Sub: ${subLevel}\nQuery: ${problem}` }];
+    const currentParts: any[] = [{ text: `Profile: ${level} | Sub: ${subLevel}\nQuery: ${problem}\nReasoning: ${reasoningMode}` }];
     if (attachment) currentParts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
     contents.push({ role: 'user', parts: currentParts });
 
@@ -221,10 +240,21 @@ export const solveMathProblem = async (
     }
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
+    const config: any = { 
+      systemInstruction, 
+      temperature: 0.2,
+    };
+
+    if (reasoningMode === 'deep') {
+      config.thinkingConfig = { thinkingBudget: isProLevel ? 32768 : 16000 };
+    } else {
+      config.maxOutputTokens = 4096;
+    }
+
     const response = await ai.models.generateContent({ 
       model: modelName, 
       contents, 
-      config: { systemInstruction, temperature: 0.2, maxOutputTokens: 4096 } 
+      config 
     });
     return { text: response.text || "", citations: [], isError: false };
   };
@@ -240,12 +270,12 @@ export const generateStudyNotes = async (files: FileAttachment[], language: Lang
   if (!key) return "API Key missing.";
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    const parts: any[] = [{ text: "Synthesize core concepts into a compact study sheet." }];
+    const parts: any[] = [{ text: "Synthesize core concepts into a compact study sheet with high academic precision." }];
     files.forEach(f => parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } }));
     const res = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts }],
-      config: { systemInstruction: "Create a compact study sheet. Language: " + language }
+      config: { systemInstruction: "Create a compact study sheet. Use LaTeX for math. Language: " + language }
     });
     return res.text || "";
   };
@@ -263,7 +293,7 @@ export const generateIllustration = async (prompt: string, size: ImageSize = '1K
   const model = 'gemini-2.5-flash-image';
   const res = await ai.models.generateContent({
     model,
-    contents: { parts: [{ text: `Minimal math diagram: ${prompt}` }] },
+    contents: { parts: [{ text: `Minimal mathematical diagram or illustrative icon for: ${prompt}. Clean white background, high contrast.` }] },
     config: { imageConfig: { aspectRatio: "1:1" } }
   });
   const part = res.candidates?.[0]?.content?.parts.find(p => p.inlineData);
@@ -278,7 +308,7 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
     model: 'gemini-3-flash-preview',
     contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}.` }] }],
     config: {
-      systemInstruction: `Generate a math quiz in ${language} for ${level}. Output JSON.`,
+      systemInstruction: `Generate a high-quality math quiz in ${language} for ${level}. Ensure variety in question types. Output JSON.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
