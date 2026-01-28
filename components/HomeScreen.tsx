@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, Sparkles, BrainCircuit, BookOpen, Rocket, ArrowRight, Moon, Sun, Menu, User as UserIcon, Mail, Instagram, Phone, Star, ShieldCheck, ChevronRight, Zap, Target, Lightbulb } from 'lucide-react';
+import { GraduationCap, Sparkles, BrainCircuit, BookOpen, Rocket, ArrowRight, Moon, Sun, Menu, User as UserIcon, Mail, Instagram, Phone, Star, ShieldCheck, ChevronRight, Zap, Target, Lightbulb, CheckCircle2 } from 'lucide-react';
 import { Feedback } from '../types';
 import MathRenderer from './MathRenderer';
 
@@ -40,10 +39,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
     fb.message.trim() !== "This website really help me for understanding math. For me this website is already perfect "
   );
 
+  // Helper to identify specific feedbacks that were "Fixed" based on the user's requests
+  const isFixedFeedback = (fb: Feedback) => {
+    const name = fb.userName.toLowerCase();
+    const msg = fb.message.toLowerCase();
+    return (
+      name.includes('farish zikhri') || 
+      (name.includes('aiman') && msg.includes('sign-in')) ||
+      (name.includes('rohan') && msg.includes('slow'))
+    );
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col items-center relative overflow-x-hidden transition-colors duration-500">
-      <div className="fixed top-[-10%] left-[-10%] w-[80%] md:w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[80%] md:w-[40%] h-[40%] bg-violet-500/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="fixed inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none select-none" style={{ backgroundImage: 'radial-gradient(#4f46e5 0.5px, transparent 0.5px)', backgroundSize: '24px 24px' }}></div>
 
       <nav className="w-full sticky top-0 z-50 px-4 md:px-8 py-4 flex items-center justify-between bg-white/60 dark:bg-slate-950/60 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 pt-safe transition-all">
@@ -190,45 +198,52 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
                   {concepts[activeConcept].desc}
                 </p>
               </div>
-
-              <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-amber-400 rounded-full blur-[80px] opacity-40"></div>
-              <div className="absolute -top-8 -right-8 w-40 h-40 bg-violet-400 rounded-full blur-[80px] opacity-40"></div>
             </div>
           </div>
         </div>
 
         <div id="wall-of-love" className="w-full max-w-5xl px-4 mb-24 scroll-mt-24">
           <div className="text-center mb-12">
-             <h2 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em] mb-4">Wall of Love</h2>
-             <h3 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">Student Success Stories</h3>
+             <h2 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em] mb-4">Community Insights</h2>
+             <h3 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">User Feedbacks</h3>
           </div>
           
           <div className="bg-slate-50/30 dark:bg-slate-900/30 backdrop-blur-sm rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 p-6 md:p-8">
             <div className="max-h-[500px] md:max-h-[600px] overflow-y-auto custom-scrollbar pr-4 -mr-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
-                {filteredFeedbacks.map((fb, i) => (
-                  <div 
-                    key={fb.id} 
-                    className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all group hover:-translate-y-1"
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-indigo-500 shadow-sm">
-                        <img src={fb.userPfp} alt={fb.userName} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="text-left min-w-0 flex-1">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{fb.userName}</p>
-                        <div className="flex gap-0.5">
-                          {[...Array(5)].map((_, idx) => (
-                            <Star key={idx} size={10} fill={idx < fb.rating ? "currentColor" : "none"} className={idx < fb.rating ? "text-amber-400" : "text-slate-300 dark:text-slate-700"} />
-                          ))}
+                {filteredFeedbacks.map((fb, i) => {
+                  const isFixed = isFixedFeedback(fb);
+                  return (
+                    <div 
+                      key={fb.id} 
+                      className={`relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all group hover:-translate-y-1`}
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-indigo-500 shadow-sm">
+                          <img src={fb.userPfp} alt={fb.userName} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="text-left min-w-0 flex-1">
+                          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{fb.userName}</p>
+                          <div className="flex gap-0.5">
+                            {[...Array(5)].map((_, idx) => (
+                              <Star key={idx} size={10} fill={idx < fb.rating ? "currentColor" : "none"} className={idx < fb.rating ? "text-amber-400" : "text-slate-300 dark:text-slate-700"} />
+                            ))}
+                          </div>
                         </div>
                       </div>
+                      <p className="text-left text-sm text-slate-600 dark:text-slate-400 italic leading-relaxed font-medium">
+                        "{fb.message}"
+                      </p>
+                      
+                      {isFixed && (
+                        <div className="absolute bottom-4 right-6 flex items-center gap-1.5 animate-in slide-in-from-right-2 duration-700">
+                          <CheckCircle2 size={12} className="text-indigo-500" />
+                          <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">FIXED</span>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-left text-sm text-slate-600 dark:text-slate-400 italic leading-relaxed font-medium">
-                      "{fb.message}"
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

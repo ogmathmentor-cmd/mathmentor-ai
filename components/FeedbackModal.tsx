@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { X, MessageSquare, Star, ChevronRight, Lock, LogIn, Heart } from 'lucide-react';
 
@@ -85,7 +84,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
               <div className="space-y-2">
                 <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Feedback Received!</h4>
                 <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-[280px] mx-auto">
-                  You've already shared your success story. Thank you for being a part of our community!
+                  You've already shared your thoughts with us. Thank you for being a part of our community!
                 </p>
               </div>
               <button
@@ -157,7 +156,7 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
                   className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95"
                 >
                   <Heart size={20} />
-                  Post Success Story
+                  Share Feedback
                   <ChevronRight size={18} />
                 </button>
               </div>
