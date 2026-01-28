@@ -1,3 +1,4 @@
+
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -27,7 +28,7 @@ const LEVEL_COLORS = [
   'bg-amber-600', 'bg-indigo-600', 'bg-cyan-600', 'bg-violet-600'
 ];
 
-const ADVANCED_FOCUS_AREAS: FocusArea[] = [
+const ESSENTIAL_MATH_CHAPTERS: FocusArea[] = [
   { label: 'Fundamentals of Algebra', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
   { label: 'Functions and Graphs', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
   { label: 'Matrices', color: 'bg-purple-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
@@ -96,7 +97,7 @@ const LEVEL_FOCUS_MAP: Record<UserLevel, FocusArea[]> = {
     { label: 'Data Management', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
   ],
   [UserLevel.INTERMEDIATE]: [],
-  [UserLevel.ADVANCED]: ADVANCED_FOCUS_AREAS,
+  [UserLevel.ADVANCED]: ESSENTIAL_MATH_CHAPTERS,
   [UserLevel.OPENAI]: []
 };
 
@@ -163,14 +164,7 @@ const SUB_LEVEL_FOCUS_MAP: Record<string, FocusArea[]> = {
     { label: 'Coordinates, Ratio And Proportion', color: 'bg-violet-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
     { label: 'Data Handling and Likelihood', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
   ],
-  'Essential Mathematics': [
-    { label: 'Fundamentals of Algebra', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Functions and Graphs', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Matrices', color: 'bg-purple-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Sequence and Series', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Derivative', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Integration', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-  ],
+  'Essential Mathematics': ESSENTIAL_MATH_CHAPTERS,
 };
 
 interface User {
@@ -411,8 +405,10 @@ const App: React.FC = () => {
       return;
     }
 
-    const isPro = level === UserLevel.OPENAI || level === UserLevel.ADVANCED;
-    if (isPro) {
+    // Only force key selection for the specialized OpenAI mode.
+    // Advanced (Essential Math) now uses Flash to ensure it works for everyone out of the box.
+    const isForcedPro = level === UserLevel.OPENAI;
+    if (isForcedPro) {
       await handleKeySelection();
     }
 
@@ -491,7 +487,7 @@ const App: React.FC = () => {
             role: 'model', 
             text: isTransient 
               ? (language === 'BM' ? "Sistem AI sangat sibuk buat masa ini. Sila cuba lagi sebentar." : "The AI service is very busy right now. Please try again in a few moments.")
-              : (message.includes('not found') ? "API Key error. Pro models require a personal API key from a paid GCP project." : "Technical error processing that message. Please try again."), 
+              : (message.includes('not found') ? "API Key error. This level requires a personal API key from a paid GCP project." : "Technical error processing that message. Please try again."), 
             timestamp: new Date(), 
             error: true 
           };

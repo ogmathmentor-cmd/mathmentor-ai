@@ -7,7 +7,7 @@ import { UserLevel, Message, FileAttachment, Quiz, ChatMode, ImageSize, Citation
 const RESPONSIVE_DIRECTIVE = `
 ### RESPONSIVENESS & FAILSAFE:
 - ALWAYS produce a response. NEVER remain silent.
-- Prioritize immediate streaming. Do not pause for long thinking steps unless necessary for complex proofs.
+- Prioritize immediate streaming.
 `;
 
 const MATH_WORKING_RULES = `
@@ -19,22 +19,29 @@ const MATH_WORKING_RULES = `
 5. The FINAL ANSWER must be on its own line and clearly labeled.
 `;
 
+const MMU_CURRICULUM_CONTEXT = `
+### MMU ESSENTIAL MATHEMATICS CURRICULUM:
+You are specifically trained on the Multimedia University (MMU) Essential Mathematics syllabus:
+- CH1: Fundamentals of Algebra (Real Numbers, Polynomials, Rational Expressions, Exponents, Radicals, Equations, Inequalities, Absolute Values)
+- CH2: Functions and Graphs (Operations on functions, Linear & Quadratic, Coordinate Geometry, Lines)
+- CH3: Matrices (Operations, Identity, Transpose, Determinant, Inverse, Systems of Equations)
+- CH4: Sequence and Series (Arithmetic and Geometric)
+- CH5: Derivative (Rules, Power rule, Chain rule, Higher-order derivatives)
+- CH6: Integration (Indefinite, Formulas, U-substitution, Definite)
+`;
+
 const SYSTEM_PROMPT_CORE = `
 ### MATHMENTOR AI DIRECTIVE
 You are a professional, friendly human-like math tutor. Your goal is to ensure the user gets a correct answer they can actually understand.
 
 ### PERSISTENCE & CONTEXT RULES:
-- You are part of a website with full history tracking and account-based persistence.
-- Always behave as if conversation history is available.
-- Maintain context across messages. Do not ask users to repeat information they have already provided in the history.
-- Acknowledge returning users naturally if the history suggests a long-term relationship.
-- Address the student by their name if provided in the context.
+- Address the student by their name if provided.
+- Maintain context across messages.
 
 ### CONSTRAINTS:
 - Language: [LANGUAGE_TOKEN]. 
 - Math: ALWAYS use LaTeX ($...$ or $$...$$) for formulas.
-- Currency: ALWAYS escape literal dollar signs for money (e.g., use \\$60 instead of $60). This is CRITICAL to avoid broken formatting.
-- Preservation: Do NOT translate variables/formulas.
+- Currency: ALWAYS escape literal dollar signs (e.g., \\$60).
 ${MATH_WORKING_RULES}
 ${RESPONSIVE_DIRECTIVE}
 `;
@@ -43,8 +50,8 @@ const ADVANCED_PROMPT_ADDON = `
 ### ADVANCED MATH RIGOR (UNIVERSITY LEVEL):
 1. Provide formal definitions when introducing new concepts.
 2. If the user asks for a proof, provide a logically rigorous derivation.
-3. Use professional academic terminology (e.g., "The sequence converges uniformly" vs "The lines get close").
-4. For multivariable or complex analysis, ensure coordinate systems and domains are clearly defined.
+3. Use professional academic terminology.
+${MMU_CURRICULUM_CONTEXT}
 `;
 
 const MODE_INSTRUCTIONS: Record<ChatMode, string> = {
@@ -56,8 +63,7 @@ const MODE_INSTRUCTIONS: Record<ChatMode, string> = {
 
   exam: `MODE: EXAM. 
 - Focus on formal derivation and precision.
-- Include "Marking Tips" or pitfall warnings.
-- DO NOT use triple backticks (\`\`\`) for text explanations or tips; only use them for actual code if necessary.`,
+- Include "Marking Tips" or pitfall warnings.`,
 
   fast: `MODE: FAST ANSWER.
 STRICT: Output ONLY LaTeX math steps ($$ ... $$) and the final answer. No words.`
@@ -105,17 +111,16 @@ export const solveMathProblemStream = async (
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // Advanced math and OpenAI levels use the Pro model for deep reasoning
-    const usePro = level === UserLevel.ADVANCED || level === UserLevel.OPENAI;
-    const modelName = usePro ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+    // OpenAI level uses Pro. Advanced (Essential Math) uses Flash for stability & speed.
+    const isPro = level === UserLevel.OPENAI;
+    const modelName = isPro ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
-    // Enable thinking budget for Advanced level if reasoningMode is 'deep'
+    // Thinking Config is only for Gemini 3 series. 
+    // We use it for Pro model (OpenAI level)
     let thinkingBudget = 0;
-    if (usePro && reasoningMode === 'deep') {
-      thinkingBudget = 4000; // Reserved for complex math reasoning
+    if (isPro && reasoningMode === 'deep') {
+      thinkingBudget = 4000;
     }
-
-    const maxOutputTokens = 8192;
 
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -125,8 +130,8 @@ export const solveMathProblemStream = async (
     const currentParts: any[] = [{ text: `
 [CONTEXT]
 Level: ${level}
-Sub-Level: ${subLevel || 'N/A'}
-Active Focus Areas: ${focusAreas?.join(', ') || 'General Math'}
+Curriculum: ${subLevel || 'N/A'}
+Topic: ${focusAreas?.join(', ') || 'General Math'}
 
 [USER QUERY]
 ${problem}
@@ -136,7 +141,7 @@ ${problem}
     contents.push({ role: 'user', parts: currentParts });
 
     let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
-    if (level === UserLevel.ADVANCED) {
+    if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) {
       systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
     }
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
@@ -144,7 +149,7 @@ ${problem}
     const config: any = {
       systemInstruction,
       temperature: mode === 'fast' ? 0.0 : 0.2,
-      maxOutputTokens,
+      maxOutputTokens: 8192,
       tools: (level === UserLevel.OPENAI) ? [{ googleSearch: {} }] : [],
     };
     
@@ -192,19 +197,18 @@ export const solveMathProblem = async (
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    const usePro = level === UserLevel.ADVANCED || level === UserLevel.OPENAI;
-    const modelName = usePro ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+    const modelName = (level === UserLevel.OPENAI) ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
       parts: [{ text: msg.text }]
     }));
-    const currentParts: any[] = [{ text: `Profile: ${level} | Sub: ${subLevel}\nQuery: ${problem}` }];
+    const currentParts: any[] = [{ text: `Profile: ${level} | Curriculum: ${subLevel}\nQuery: ${problem}` }];
     if (attachment) currentParts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
     contents.push({ role: 'user', parts: currentParts });
 
     let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
-    if (level === UserLevel.ADVANCED) {
+    if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) {
       systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
     }
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
@@ -226,22 +230,15 @@ export const solveMathProblem = async (
 export const generateStudyNotes = async (files: FileAttachment[], language: Language): Promise<string> => {
   const key = process.env.API_KEY;
   if (!key) return "API Key missing.";
-  const executeCall = async () => {
-    const ai = new GoogleGenAI({ apiKey: key });
-    const parts: any[] = [{ text: "Synthesize core concepts into a compact study sheet." }];
-    files.forEach(f => parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } }));
-    const res = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: [{ role: 'user', parts }],
-      config: { systemInstruction: "Create a compact study sheet. Language: " + language }
-    });
-    return res.text || "";
-  };
-  try {
-    return await withRetry(executeCall);
-  } catch (error) {
-    return handleApiError(error, language);
-  }
+  const ai = new GoogleGenAI({ apiKey: key });
+  const parts: any[] = [{ text: "Synthesize core concepts into a compact study sheet. Focus on definitions, rules, and examples." }];
+  files.forEach(f => parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } }));
+  const res = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: [{ role: 'user', parts }],
+    config: { systemInstruction: "Create a compact study sheet. Language: " + language }
+  });
+  return res.text || "";
 };
 
 export const generateIllustration = async (prompt: string, size: ImageSize = '1K', isManualHighRes = false): Promise<string | null> => {
@@ -262,12 +259,12 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
   const key = process.env.API_KEY;
   if (!key) throw new Error("API Key missing.");
   const ai = new GoogleGenAI({ apiKey: key });
-  const model = (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+  const model = 'gemini-3-flash-preview';
   const res = await ai.models.generateContent({
     model,
     contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}.` }] }],
     config: {
-      systemInstruction: `Generate a math quiz in ${language} for ${level}. Output JSON.`,
+      systemInstruction: `Generate a math quiz in ${language} for ${level}. Topic: ${topic}. Output JSON.`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,

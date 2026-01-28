@@ -139,7 +139,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
                       <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-indigo-500 shadow-sm">
                         <img src={fb.userPfp} alt={fb.userName} className="w-full h-full object-cover" />
                       </div>
-                      <div className="text-left">
+                      <div className="text-left min-w-0 flex-1">
                         <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{fb.userName}</p>
                         <div className="flex gap-0.5">
                           {[...Array(5)].map((_, idx) => (
