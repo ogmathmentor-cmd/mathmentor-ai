@@ -72,14 +72,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
     const code = err.code || "";
     if (code === 'auth/unauthorized-domain') {
       return (
-        <div className="space-y-2">
+        <div className="space-y-2 text-left">
           <div className="font-bold flex items-center gap-2">
              <AlertTriangle size={14} /> Unauthorized Domain
           </div>
           <p className="text-[10px] leading-tight opacity-90">
             This domain is not authorized in your Firebase Project. 
-            To fix this, go to <b>Firebase Console > Authentication > Settings > Authorized domains</b> and add:
+            To fix this, go to:
           </p>
+          <div className="bg-black/20 p-2 rounded-lg text-[9px] font-bold">
+            Firebase Console &rarr; Authentication &rarr; Settings &rarr; Authorized domains
+          </div>
+          <p className="text-[10px] leading-tight opacity-90">And add this hostname:</p>
           <code className="block bg-black/30 p-1.5 rounded text-[10px] font-mono break-all select-all">
             {window.location.hostname}
           </code>
