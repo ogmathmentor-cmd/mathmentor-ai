@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Mail, Lock, User, ArrowLeft, ArrowRight, GraduationCap, X, Eye, EyeOff, ShieldCheck, ShieldAlert, Loader2, CheckSquare, Square, Smartphone, Chrome, Hash, AlertTriangle, ExternalLink } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Mail, Lock, User, ArrowRight, GraduationCap, X, Eye, EyeOff, ShieldCheck, ShieldAlert, Loader2, CheckSquare, Square, Chrome, AlertTriangle, ExternalLink } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { 
   signInWithEmailAndPassword, 
@@ -7,10 +7,7 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   GoogleAuthProvider,
-  signInWithPopup,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-  ConfirmationResult
+  signInWithPopup
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
@@ -19,7 +16,7 @@ interface AuthScreenProps {
   onLogin: (user: { name: string; email: string; pfp: string }) => void;
 }
 
-type AuthMode = 'login' | 'signup' | 'recovery' | 'phone' | 'verify-code';
+type AuthMode = 'login' | 'signup' | 'recovery';
 
 const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
   const [authMode, setAuthMode] = useState<AuthMode>('login');
@@ -28,9 +25,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [verificationCode, setVerificationCode] = useState('');
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,34 +32,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
-  const recaptchaRef = useRef<HTMLDivElement>(null);
-
-  // Initialize Recaptcha for Phone Auth
-  useEffect(() => {
-    if ((authMode === 'phone' || authMode === 'verify-code') && !window.recaptchaVerifier) {
-      try {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          'size': 'invisible',
-          'callback': () => {},
-          'expired-callback': () => {
-            setError("reCAPTCHA expired. Please try again.");
-          }
-        });
-      } catch (err: any) {
-        console.error("Recaptcha Init Error:", err);
-      }
-    }
-
-    return () => {
-      // Don't clear immediately on every mode change to allow verification to finish
-    };
-  }, [authMode]);
-
   const parseFirebaseError = (err: any) => {
     const code = err.code || "";
     const message = err.message || "";
     
-    // Handle the specific -39 error from the screenshot
     if (code === 'auth/unauthorized-domain' || message.includes('unauthorized-domain')) {
       return (
         <div className="space-y-2 text-left">
@@ -83,24 +53,13 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
           <code className="block bg-black/30 p-1.5 rounded text-[10px] font-mono break-all select-all">
             {window.location.hostname}
           </code>
-        </div>
-      );
-    }
-
-    if (message.includes('-39') || code.includes('error-code:-39')) {
-      return (
-        <div className="space-y-2 text-left">
-          <div className="font-bold flex items-center gap-2">
-             <ShieldAlert size={14} /> SMS Setup Error
-          </div>
-          <p className="text-[10px] leading-tight opacity-90">
-            Firebase could not start the reCAPTCHA verification. Please ensure:
-          </p>
-          <ul className="text-[9px] list-disc list-inside opacity-80 space-y-1">
-            <li>Phone Auth is <b>ENABLED</b> in Firebase Console.</li>
-            <li>Wait 5 mins if you just added the domain.</li>
-            <li>Try disabling ad-blockers for this site.</li>
-          </ul>
+          <a 
+            href="https://console.firebase.google.com/" 
+            target="_blank" 
+            className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 underline font-bold mt-1"
+          >
+            Open Console <ExternalLink size={10} />
+          </a>
         </div>
       );
     }
@@ -146,7 +105,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
     if (!docSnap.exists()) {
       await setDoc(docRef, {
         email: firebaseUser.email || '',
-        phone: firebaseUser.phoneNumber || '',
         name: displayName,
         level: "Secondary",
         mode: "learning",
@@ -157,7 +115,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
       });
     }
 
-    onLogin({ name: displayName, email: firebaseUser.email || firebaseUser.phoneNumber || 'Private', pfp });
+    onLogin({ name: displayName, email: firebaseUser.email || 'Private', pfp });
   };
 
   const handleGoogleSignIn = async () => {
@@ -174,66 +132,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
     }
   };
 
-  const handlePhoneSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!phoneNumber.startsWith('+')) {
-      setError("Please enter phone number with country code (e.g. +60)");
-      return;
-    }
-    
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      // Re-init if needed to avoid -39 stale container errors
-      if (window.recaptchaVerifier) {
-        try { window.recaptchaVerifier.clear(); } catch(e) {}
-        window.recaptchaVerifier = null;
-      }
-      
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 
-        'size': 'invisible' 
-      });
-
-      const appVerifier = window.recaptchaVerifier;
-      const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-      setConfirmationResult(result);
-      setAuthMode('verify-code');
-      setSuccessMsg("SMS code sent to your phone.");
-    } catch (err: any) {
-      console.error("SMS Send Error:", err);
-      setError(parseFirebaseError(err));
-      if (window.recaptchaVerifier) {
-        try { window.recaptchaVerifier.clear(); } catch(e) {}
-        window.recaptchaVerifier = null;
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!confirmationResult) {
-      setError("Session expired. Please request a new code.");
-      setAuthMode('phone');
-      return;
-    }
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const result = await confirmationResult.confirm(verificationCode);
-      await syncUserProfile(result.user);
-    } catch (err: any) {
-      setError("Invalid verification code. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (authMode === 'phone') return handlePhoneSignIn(e);
-    if (authMode === 'verify-code') return handleVerifyCode(e);
     
     setError(null);
     setSuccessMsg(null);
@@ -278,9 +178,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-300" onClick={onBack} />
       
-      {/* Hidden container for reCAPTCHA - must always be in DOM for Phone Auth */}
-      <div id="recaptcha-container" ref={recaptchaRef} className="hidden"></div>
-      
       <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500 relative">
         <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
           <button onClick={onBack} className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"><X size={20} /></button>
@@ -290,7 +187,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
                {isSubmitting ? <Loader2 size={32} className="animate-spin" /> : <GraduationCap size={32} className="group-hover:scale-110" />}
             </div>
             <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight text-center">
-              {authMode === 'login' ? 'Welcome Back' : authMode === 'signup' ? 'Join MathMentor' : authMode === 'phone' ? 'Phone Sign In' : authMode === 'verify-code' ? 'Verify Code' : 'Recover Account'}
+              {authMode === 'login' ? 'Welcome Back' : authMode === 'signup' ? 'Join MathMentor' : 'Recover Account'}
             </h1>
             <p className="text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] mt-2 flex items-center gap-1.5 text-center">
               <ShieldCheck size={12} className="text-emerald-500" /> Secure Access
@@ -335,23 +232,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500"><Mail size={18} /></div>
                   <input type="email" required value={recoveryEmail} onChange={(e) => setRecoveryEmail(e.target.value)} className="block w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-700 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 dark:text-white" placeholder="Enter account email" />
-                </div>
-              </div>
-            ) : authMode === 'phone' ? (
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Phone Number</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500"><Smartphone size={18} /></div>
-                  <input type="tel" required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="block w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-700 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 dark:text-white" placeholder="+60123456789" />
-                </div>
-                <p className="text-[9px] text-slate-400 font-medium px-1 pt-1">Include country code (e.g. +60 for Malaysia)</p>
-              </div>
-            ) : authMode === 'verify-code' ? (
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Verification Code</label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-500"><Hash size={18} /></div>
-                  <input type="text" required maxLength={6} value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)} className="block w-full pl-10 pr-3 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-700 rounded-xl text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-slate-900 dark:text-white text-center tracking-[0.5em] font-black" placeholder="000000" />
                 </div>
               </div>
             ) : (
@@ -411,18 +291,10 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
               {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : 
                 authMode === 'login' ? 'Sign In with Email' : 
                 authMode === 'signup' ? 'Create Account' : 
-                authMode === 'phone' ? 'Send SMS Code' :
-                authMode === 'verify-code' ? 'Verify & Sign In' :
                 'Reset Password'
               }
               {!isSubmitting && <ArrowRight size={18} />}
             </button>
-
-            {(authMode === 'login' || authMode === 'signup') && (
-              <button type="button" onClick={() => { setAuthMode('phone'); setError(null); }} className="w-full py-3 text-xs font-black text-slate-500 hover:text-indigo-600 transition-all flex items-center justify-center gap-2">
-                <Smartphone size={16} /> Use Phone Number instead
-              </button>
-            )}
           </form>
 
           <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center flex flex-col gap-3">
@@ -430,7 +302,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
               {authMode === 'signup' ? "Already have an account?" : "Don't have an account?"}{' '}
               <span className="text-indigo-600 dark:text-indigo-400 font-black uppercase tracking-widest">{authMode === 'signup' ? 'Log In' : 'Sign Up'}</span>
             </button>
-            {authMode !== 'login' && authMode !== 'signup' && (
+            {authMode === 'recovery' && (
               <button onClick={() => { setAuthMode('login'); setError(null); setSuccessMsg(null); }} className="text-xs font-black text-indigo-500 uppercase tracking-widest">Back to Login</button>
             )}
           </div>
@@ -440,12 +312,5 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
     </div>
   );
 };
-
-// Extend global Window type for reCAPTCHA
-declare global {
-  interface Window {
-    recaptchaVerifier: any;
-  }
-}
 
 export default AuthScreen;
