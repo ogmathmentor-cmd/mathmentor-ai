@@ -82,6 +82,14 @@ const KSSM_INTERMEDIATE_DATA: Record<string, { EN: string[], BM: string[] }> = {
   'Form 5': {
     EN: ['Variation', 'Matrices', 'Consumer Math (Insurans)', 'Consumer Math (Taxation)', 'Congruency & Enlargement', 'Trig Functions & Graphs', 'Dispersion (Grouped)', 'Mathematical Modelling'],
     BM: ['Ubahan', 'Matriks', 'Matematik Pengguna: Insurans', 'Matematik Pengguna: Percukaian', 'Kesebangunan, Pembesaran...', 'Nisbah dan Graf Fungsi Trigonometri', 'Sukatan Serakan Data Terumpul', 'Pemodelan Matematik']
+  },
+  'Form 4 (Addmath)': {
+    EN: ['Functions', 'Quadratic Functions', 'Systems of Linear Equations', 'Indices, Surds and Logarithms', 'Arithmetic and Geometric Progressions', 'Linear Law', 'Coordinate Geometry', 'Vectors', 'Solution of Triangles', 'Index Numbers'],
+    BM: ['Fungsi', 'Fungsi Kuadratik', 'Sistem Persamaan Linear', 'Indeks, Surd dan Logaritma', 'Jujukan Aritmetik dan Jujukan Geometri', 'Hukum Linear', 'Geometri Koordinat', 'Vektor', 'Penyelesaian Segi Tiga', 'Nombor Indeks']
+  },
+  'Form 5 (Addmath)': {
+    EN: ['Circular Measure', 'Coordinate Geometry – Advanced', 'Vectors – Advanced', 'Trigonometric Functions', 'Differentiation', 'Integration', 'Permutation and Combination', 'Probability Distribution', 'Linear Programming', 'Kinematics of Linear Motion'],
+    BM: ['Ukuran Bulatan', 'Geometri Koordinat Lanjutan', 'Vektor Lanjutan', 'Fungsi Trigonometri', 'Pembezaan', 'Pengamiran', 'Penyusunan dan Gabungan', 'Taburan Kebarangkalian', 'Pengaturcaraan Linear', 'Kinematik Gerakan Linear']
   }
 };
 
@@ -181,7 +189,8 @@ const STORAGE_KEYS = {
   CHATMODE: 'math_mentor_chatmode',
   FOCUS_AREAS: 'math_mentor_focusareas',
   USER_SESSION: 'math_mentor_user_session',
-  FEEDBACKS: 'math_mentor_feedbacks'
+  FEEDBACKS: 'math_mentor_feedbacks',
+  HAS_SUBMITTED_FEEDBACK: 'math_mentor_has_submitted_feedback'
 };
 
 const DEFAULT_FEEDBACKS: Feedback[] = [
@@ -213,6 +222,7 @@ const App: React.FC = () => {
   const [pendingProblem, setPendingProblem] = useState<{text: string; attachment?: FileAttachment} | null>(null);
   const [activeFocusAreas, setActiveFocusAreas] = useState<string[]>([]);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [hasSubmittedFeedback, setHasSubmittedFeedback] = useState(false);
 
   const addToast = (message: string, type: 'error' | 'success' | 'info' = 'info') => {
     const id = Math.random().toString(36).substring(2, 9);
@@ -232,6 +242,7 @@ const App: React.FC = () => {
     const savedChatmode = localStorage.getItem(STORAGE_KEYS.CHATMODE);
     const savedFocus = localStorage.getItem(STORAGE_KEYS.FOCUS_AREAS);
     const savedUser = localStorage.getItem(STORAGE_KEYS.USER_SESSION);
+    const savedFeedbackStatus = localStorage.getItem(STORAGE_KEYS.HAS_SUBMITTED_FEEDBACK);
 
     if (savedMessages) {
       try {
@@ -251,6 +262,8 @@ const App: React.FC = () => {
     if (savedFocus) {
       try { setActiveFocusAreas(JSON.parse(savedFocus)); } catch (e) {}
     }
+    if (savedFeedbackStatus === 'true') setHasSubmittedFeedback(true);
+
     if (savedUser) {
       try { 
         const parsedUser = JSON.parse(savedUser);
@@ -331,15 +344,7 @@ const App: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (view !== 'home') {
-      document.body.classList.add('no-scroll');
-    } else {
-      document.body.classList.remove('no-scroll');
-    }
-    return () => document.body.classList.remove('no-scroll');
-  }, [view]);
-  
+  // Update root viewport unit height logic
   const currentFocusOptions = useMemo(() => {
     if (level === UserLevel.OPENAI) return [];
     
@@ -405,8 +410,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // Only force key selection for the specialized OpenAI mode.
-    // Advanced (Essential Math) now uses Flash to ensure it works for everyone out of the box.
     const isForcedPro = level === UserLevel.OPENAI;
     if (isForcedPro) {
       await handleKeySelection();
@@ -567,6 +570,7 @@ const App: React.FC = () => {
     setActiveFocusAreas([]);
     setUser(null);
     setChatMode('learning');
+    setHasSubmittedFeedback(false);
     Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
     setView('home');
     addToast("All session data cleared.", "success");
@@ -583,7 +587,7 @@ const App: React.FC = () => {
   };
 
   const handleSubmitFeedback = async (text: string, rating: number) => {
-    if (!user) return;
+    if (!user || hasSubmittedFeedback) return;
 
     if (window.firebaseDatabase) {
       try {
@@ -596,7 +600,19 @@ const App: React.FC = () => {
           timestamp: Date.now(),
           avatarSeed: user.name.toLowerCase()
         });
+        
+        setHasSubmittedFeedback(true);
+        localStorage.setItem(STORAGE_KEYS.HAS_SUBMITTED_FEEDBACK, 'true');
         addToast("Feedback shared with the community!", "success");
+
+        setView('home');
+        setTimeout(() => {
+          const section = document.getElementById('wall-of-love');
+          if (section) {
+            section.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 300);
+
       } catch (err) {
         console.error("Firebase Sync Error:", err);
         addToast("Local submission successful, but network sync failed.", "info");
@@ -604,8 +620,9 @@ const App: React.FC = () => {
     }
   };
 
+  // Main wrapper fills the entire viewport at all times
   return (
-    <div className="min-h-screen flex flex-col bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 transition-colors duration-300 relative">
+    <div className="w-full h-full min-h-[100dvh] flex flex-col bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 transition-colors duration-300 relative overflow-hidden">
       <NavigationDrawer 
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
@@ -626,12 +643,17 @@ const App: React.FC = () => {
         onSubmit={handleSubmitFeedback} 
         user={user}
         onSignIn={() => { setIsFeedbackModalOpen(false); setIsAuthModalOpen(true); }}
+        hasAlreadySubmitted={hasSubmittedFeedback}
       />
 
       {view === 'home' ? (
-        <HomeScreen onStart={() => setView('app')} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} onOpenMenu={() => setIsDrawerOpen(true)} onLogin={() => setIsAuthModalOpen(true)} user={user} feedbacks={feedbacks} />
+        // Home Screen is the landing page and needs internal vertical scrolling
+        <div className="w-full h-full overflow-y-auto custom-scrollbar pt-0">
+          <HomeScreen onStart={() => setView('app')} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} onOpenMenu={() => setIsDrawerOpen(true)} onLogin={() => setIsAuthModalOpen(true)} user={user} feedbacks={feedbacks} />
+        </div>
       ) : (
-        <div className="flex flex-col h-screen overflow-hidden">
+        // App container uses strictly fixed viewport height with internal scroll zones
+        <div className="flex flex-col w-full h-full overflow-hidden">
           <Header 
             level={level} 
             subLevel={subLevel} 
@@ -654,61 +676,63 @@ const App: React.FC = () => {
             </div>
           )}
           
-          {view === 'settings' ? (
-            <SettingsView 
-              user={user} 
-              activeTab={settingsTab} 
-              setTab={setSettingsTab} 
-              onBack={() => setView('app')} 
-              isDarkMode={isDarkMode} 
-              toggleTheme={() => setIsDarkMode(!isDarkMode)} 
-              level={level} 
-              subLevel={subLevel} 
-              socraticEnabled={socraticEnabled} 
-              setSocraticEnabled={setSocraticEnabled}
-              reasoningMode={reasoningMode}
-              setReasoningMode={setReasoningMode}
-              onUpdateUser={handleUpdateUser}
-              onDeleteData={onDeleteData}
-            />
-          ) : view === 'quicknotes' ? (
-            <QuickNotesView language={language} onBack={() => setView('app')} />
-          ) : (
-            <main className="flex-1 max-w-full mx-auto w-full p-0 md:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-0 md:gap-6 overflow-hidden h-full">
-              {level !== UserLevel.OPENAI && (
-                <div className={`hidden lg:flex flex-col gap-6 transition-all duration-500 ease-in-out ${isFocusMinimized ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
-                  <div className={`bg-white dark:bg-[#0f172a] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 overflow-hidden h-full flex flex-col transition-all duration-500`}>
-                    <div className={`flex items-center justify-between mb-6 w-full`}>
-                      {!isFocusMinimized && <h2 className="text-xs font-black flex items-center gap-2 tracking-[0.1em] text-slate-800 dark:text-slate-200 uppercase"><Sparkles size={16} className="text-indigo-600" /> Focus Areas</h2>}
-                      <button onClick={() => { setIsFocusMinimized(!isFocusMinimized); }} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400">
-                        {isFocusMinimized ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-                      </button>
-                    </div>
-                    {!isFocusMinimized && (
-                      <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar">
-                        {currentFocusOptions.map((area) => (
-                          <div key={area.label} onClick={() => toggleFocusArea(area.label)} className="group cursor-pointer">
-                            <div className="flex items-center justify-between mb-1.5">
-                               <span className={`text-[12px] font-bold ${activeFocusAreas.includes(area.label) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'} transition-colors`}>{area.label}</span>
-                               <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${activeFocusAreas.includes(area.label) ? area.color : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'}`}>{activeFocusAreas.includes(area.label) ? (language === 'BM' ? 'Aktif' : 'ACTIVE') : (language === 'BM' ? 'Sedia' : 'READY')}</span>
-                            </div>
-                          </div>
-                        ))}
+          <div className="flex-1 overflow-hidden">
+            {view === 'settings' ? (
+              <SettingsView 
+                user={user} 
+                activeTab={settingsTab} 
+                setTab={setSettingsTab} 
+                onBack={() => setView('app')} 
+                isDarkMode={isDarkMode} 
+                toggleTheme={() => setIsDarkMode(!isDarkMode)} 
+                level={level} 
+                subLevel={subLevel} 
+                socraticEnabled={socraticEnabled} 
+                setSocraticEnabled={setSocraticEnabled}
+                reasoningMode={reasoningMode}
+                setReasoningMode={setReasoningMode}
+                onUpdateUser={handleUpdateUser}
+                onDeleteData={onDeleteData}
+              />
+            ) : view === 'quicknotes' ? (
+              <QuickNotesView language={language} onBack={() => setView('app')} />
+            ) : (
+              <main className="h-full max-w-full mx-auto w-full p-0 md:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-0 md:gap-6 overflow-hidden">
+                {level !== UserLevel.OPENAI && (
+                  <div className={`hidden lg:flex flex-col gap-6 transition-all duration-500 ease-in-out h-full overflow-hidden ${isFocusMinimized ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
+                    <div className={`bg-white dark:bg-[#0f172a] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 overflow-hidden h-full flex flex-col transition-all duration-500`}>
+                      <div className={`flex items-center justify-between mb-6 w-full`}>
+                        {!isFocusMinimized && <h2 className="text-xs font-black flex items-center gap-2 tracking-[0.1em] text-slate-800 dark:text-slate-200 uppercase whitespace-nowrap"><Sparkles size={16} className="text-indigo-600" /> Focus Areas</h2>}
+                        <button onClick={() => { setIsFocusMinimized(!isFocusMinimized); }} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400">
+                          {isFocusMinimized ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                        </button>
                       </div>
-                    )}
+                      {!isFocusMinimized && (
+                        <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar">
+                          {currentFocusOptions.map((area) => (
+                            <div key={area.label} onClick={() => toggleFocusArea(area.label)} className="group cursor-pointer">
+                              <div className="flex items-center justify-between mb-1.5">
+                                 <span className={`text-[12px] font-bold ${activeFocusAreas.includes(area.label) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'} transition-colors`}>{area.label}</span>
+                                 <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${activeFocusAreas.includes(area.label) ? area.color : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'}`}>{activeFocusAreas.includes(area.label) ? (language === 'BM' ? 'Aktif' : 'ACTIVE') : (language === 'BM' ? 'Sedia' : 'READY')}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
+                )}
+
+                <div className={`flex flex-col h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:col-span-12' : (isFocusMinimized ? 'lg:col-span-8' : 'lg:col-span-7')}`}>
+                  <ChatInterface messages={messages} onSendMessage={handleSendMessage} isLoading={isLoading} level={level} activeMode={chatMode} setActiveMode={setChatMode} onError={addToast} language={language} />
                 </div>
-              )}
 
-              <div className={`flex flex-col h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:col-span-12' : (isFocusMinimized ? 'lg:col-span-8' : 'lg:col-span-7')}`}>
-                <ChatInterface messages={messages} onSendMessage={handleSendMessage} isLoading={isLoading} level={level} activeMode={chatMode} setActiveMode={setChatMode} onError={addToast} language={language} />
-              </div>
-
-              <div className={`hidden lg:block ${level === UserLevel.OPENAI ? 'lg:hidden' : 'lg:col-span-3'} h-full overflow-hidden`}>
-                  <ToolsPanel level={level} subLevel={subLevel} setLevel={handleLevelChange} activeFocusAreas={activeFocusAreas} toggleFocusArea={toggleFocusArea} focusOptions={currentFocusOptions} language={language} />
-              </div>
-            </main>
-          )}
+                <div className={`hidden lg:block ${level === UserLevel.OPENAI ? 'lg:hidden' : 'lg:col-span-3'} h-full overflow-hidden`}>
+                    <ToolsPanel level={level} subLevel={subLevel} setLevel={handleLevelChange} activeFocusAreas={activeFocusAreas} toggleFocusArea={toggleFocusArea} focusOptions={currentFocusOptions} language={language} />
+                </div>
+              </main>
+            )}
+          </div>
         </div>
       )}
     </div>

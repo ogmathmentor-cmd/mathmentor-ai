@@ -10,6 +10,24 @@ const RESPONSIVE_DIRECTIVE = `
 - Prioritize immediate streaming.
 `;
 
+const LATEX_FORMATTING_GUIDE = `
+### LATEX FORMATTING GUIDE (STRICT):
+1. MATRICES: Always use \\begin{pmatrix} ... \\end{pmatrix}. Use & as column separator and \\\\ as row separator.
+2. FRACTIONS: Always use \\frac{numerator}{denominator} for complex fractions.
+3. ALIGNMENT: For multi-step derivations, use \\begin{aligned} ... \\end{aligned} with & for alignment points.
+4. SYMBOLS: Use proper LaTeX symbols: \\times (not *), \\div (not /), \\pm, \\sqrt{}, \\int, \\sum.
+5. DELIMITERS: Use $...$ for inline math and $$...$$ for block math.
+`;
+
+const VISUAL_LEARNING_PROTOCOL = `
+### VISUAL LEARNING PROTOCOL:
+If the problem involves spatial reasoning, geometry, functions, locus, or graphs, OR if the user explicitly asks for a diagram/graph, you MUST include a request for an illustration.
+- Use the tag [ILLUSTRATE: detailed description] at the end of your response.
+- Example: [ILLUSTRATE: A circle with a chord AB and a perpendicular bisector from the center O.]
+- Key Topics for Visuals: Locus, Circles (Angles, Chords, Tangents), Coordinate Geometry, Graphs of Functions, Vectors, and 3D Geometry.
+- Describe the visual clearly so the diagram generator can produce a high-quality educational graphic.
+`;
+
 const MATH_WORKING_RULES = `
 ### MATH WORKING RULES (CRITICAL):
 1. SHOW WORKING clearly and step-by-step.
@@ -17,6 +35,9 @@ const MATH_WORKING_RULES = `
 3. Use simple mathematical notation in LaTeX ($...$ or $$...$$).
 4. Do NOT combine multiple steps into one line.
 5. The FINAL ANSWER must be on its own line and clearly labeled.
+${LATEX_FORMATTING_GUIDE}
+${VISUAL_LEARNING_PROTOCOL}
+${RESPONSIVE_DIRECTIVE}
 `;
 
 const MMU_CURRICULUM_CONTEXT = `
@@ -28,6 +49,15 @@ You are specifically trained on the Multimedia University (MMU) Essential Mathem
 - CH4: Sequence and Series (Arithmetic and Geometric)
 - CH5: Derivative (Rules, Power rule, Chain rule, Higher-order derivatives)
 - CH6: Integration (Indefinite, Formulas, U-substitution, Definite)
+`;
+
+const KSSM_ADDMATH_CONTEXT = `
+### KSSM ADDITIONAL MATHEMATICS CONTEXT (SPM):
+You are an expert Additional Mathematics teacher for Form 4 & 5 (Malaysia KSSM).
+Your goal is to prepare students for SPM level rigor by focusing on formal derivation, precision, and Malaysian examination style.
+Chapters covered include Functions, Quadratic Functions, Systems of Linear Equations, Indices/Surds/Logarithms, Progressions, Linear Law, Coordinate Geometry, Vectors, Trigonometry, Calculus, Permutations/Combinations, Probability Distributions, and Kinematics.
+- Correct mistakes by explaining "why" before showing the "how".
+- Use terminology consistent with the Malaysian KSSM syllabus.
 `;
 
 const SYSTEM_PROMPT_CORE = `
@@ -43,7 +73,6 @@ You are a professional, friendly human-like math tutor. Your goal is to ensure t
 - Math: ALWAYS use LaTeX ($...$ or $$...$$) for formulas.
 - Currency: ALWAYS escape literal dollar signs (e.g., \\$60).
 ${MATH_WORKING_RULES}
-${RESPONSIVE_DIRECTIVE}
 `;
 
 const ADVANCED_PROMPT_ADDON = `
@@ -144,6 +173,9 @@ ${problem}
     if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) {
       systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
     }
+    if (subLevel?.includes('Addmath')) {
+      systemInstruction += `\n${KSSM_ADDMATH_CONTEXT}`;
+    }
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
     const config: any = {
@@ -211,6 +243,9 @@ export const solveMathProblem = async (
     if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) {
       systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
     }
+    if (subLevel?.includes('Addmath')) {
+      systemInstruction += `\n${KSSM_ADDMATH_CONTEXT}`;
+    }
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
     const response = await ai.models.generateContent({ 
@@ -246,9 +281,13 @@ export const generateIllustration = async (prompt: string, size: ImageSize = '1K
   if (!key) return null;
   const ai = new GoogleGenAI({ apiKey: key });
   const model = 'gemini-2.5-flash-image';
+  
+  // Refined prompt for mathematical diagram consistency
+  const refinedPrompt = `A clean, minimalist mathematical educational diagram for teaching. Style: 2D black and white vector-like line art on white background. Content: ${prompt}. Focus on clarity, accuracy of geometric shapes, and legible math labels. No shading, no photorealism. Suitable for textbook graphics.`;
+
   const res = await ai.models.generateContent({
     model,
-    contents: { parts: [{ text: `Minimal math diagram: ${prompt}` }] },
+    contents: { parts: [{ text: refinedPrompt }] },
     config: { imageConfig: { aspectRatio: "1:1" } }
   });
   const part = res.candidates?.[0]?.content?.parts.find(p => p.inlineData);
@@ -260,11 +299,39 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
   if (!key) throw new Error("API Key missing.");
   const ai = new GoogleGenAI({ apiKey: key });
   const model = 'gemini-3-flash-preview';
+
+  let languageDirective = "";
+  if (language === 'BM') {
+    languageDirective = `
+### MALAYSIAN KSSM TRANSLATION PROTOCOL (STRICT):
+1. LANGUAGE: Use formal, clear, textbook-style Bahasa Melayu suitable for KSSM students.
+2. MATHEMATICS PRESERVATION: DO NOT change numbers, symbols, matrices, variables, or LaTeX formatting.
+3. TERMINOLOGY (KSSM STANDARD):
+- Matrix -> Matriks
+- Given matrices -> Diberi matriks
+- Determine -> Tentukan
+- Product -> Hasil darab
+- Value -> Nilai
+- Find -> Cari
+- Hence -> Oleh itu
+- If -> Jika
+- Options -> Pilihan jawapan
+4. FORMATTING: Preserve question numbering, multiple-choice labels (A, B, C, D), and LaTeX layout.
+`;
+  }
+
   const res = await ai.models.generateContent({
     model,
     contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}.` }] }],
     config: {
-      systemInstruction: `Generate a math quiz in ${language} for ${level}. Topic: ${topic}. Output JSON.`,
+      systemInstruction: `Generate a detailed math quiz in ${language} for ${level} level students. 
+      Topic: ${topic}. 
+      Ensure each question includes a thorough explanation with clear LaTeX formatting for all equations, matrices, and fractions.
+      Provide a "pitfalls" field describing common mistakes students make for this specific problem.
+      Provide an "alternatives" field explaining other mathematical ways to reach the same answer.
+      Format the output as JSON according to the schema.
+      ${languageDirective}
+      ${LATEX_FORMATTING_GUIDE}`,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -278,9 +345,11 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
                 question: { type: Type.STRING },
                 options: { type: Type.ARRAY, items: { type: Type.STRING } },
                 correctAnswerIndex: { type: Type.INTEGER },
-                explanation: { type: Type.STRING }
+                explanation: { type: Type.STRING, description: "Detailed step-by-step reasoning for the correct answer." },
+                pitfalls: { type: Type.STRING, description: "Common misconceptions or errors related to this question type." },
+                alternatives: { type: Type.STRING, description: "Alternative valid methods to solve this question." }
               },
-              required: ["question", "options", "correctAnswerIndex", "explanation"]
+              required: ["question", "options", "correctAnswerIndex", "explanation", "pitfalls", "alternatives"]
             }
           }
         },

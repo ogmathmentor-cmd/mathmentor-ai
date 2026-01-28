@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -56,27 +57,63 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+      /* 1. Global Reset & Box Sizing */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
       :root {
         --bg-primary: #ffffff;
       }
       .dark {
         --bg-primary: #020617; /* slate-950 */
       }
-      body {
+
+      /* 2. Force HTML and Body to fill browser window */
+      html, body {
+        width: 100%;
+        height: 100%;
         font-family: 'Inter', sans-serif;
         background-color: var(--bg-primary);
-        margin: 0;
         transition: background-color 0.4s ease;
-        overflow-x: hidden;
-      }
-      
-      body.no-scroll {
+        /* Prevent elastic bounce on mobile and unexpected horizontal drift */
         overflow: hidden;
-        height: 100vh;
-        width: 100vw;
-        position: fixed;
       }
 
+      /* KaTeX Enhancement */
+      .katex {
+        font-size: 1.05em;
+        text-rendering: optimizeLegibility;
+      }
+      
+      .katex-display {
+        margin: 1.25rem 0;
+        padding: 0.5rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      /* Better Matrix Spacing */
+      .katex .matrix-col-sep {
+        width: 1em;
+      }
+
+      .dark .katex {
+        color: #f1f5f9;
+      }
+
+      /* Allow scrolling only within our React root if designated */
+      #root {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      
+      /* pb-safe/pt-safe handles notches on modern devices */
       .pb-safe {
         padding-bottom: env(safe-area-inset-bottom);
       }
@@ -104,14 +141,8 @@
         background: #1e293b;
       }
 
-      /* MOBILE ONLY: Math Content Fixes and Scroll enablement */
+      /* MOBILE ONLY: Math Content Fixes */
       @media (max-width: 768px) {
-        body.no-scroll {
-          overflow-y: auto !important;
-          height: auto !important;
-          position: relative !important;
-        }
-
         .katex-display {
           overflow-x: auto;
           overflow-y: hidden;
@@ -130,17 +161,8 @@
           font-size: 14px !important;
           line-height: 1.6;
         }
-        /* Improve touch targets */
         button, a, input, select, textarea {
           min-height: 44px;
-        }
-        /* Specific sizing overrides for small buttons */
-        button.p-2, button.p-2.5 {
-          min-width: 44px;
-          min-height: 44px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
       }
     </style>

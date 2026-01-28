@@ -1,8 +1,8 @@
 
 export enum UserLevel {
-  BEGINNER = 'Beginner (Primary)',
-  INTERMEDIATE = 'Intermediate (Secondary)',
-  ADVANCED = 'Advanced (University)',
+  BEGINNER = 'Primary',
+  INTERMEDIATE = 'Secondary',
+  ADVANCED = 'Pre-University',
   OPENAI = 'OpenAI'
 }
 
@@ -68,6 +68,8 @@ export interface QuizQuestion {
   options: string[];
   correctAnswerIndex: number;
   explanation: string;
+  pitfalls?: string;
+  alternatives?: string;
 }
 
 export interface Quiz {

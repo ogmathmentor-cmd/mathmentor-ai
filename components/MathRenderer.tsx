@@ -18,11 +18,16 @@ const MathRenderer: React.FC<MathRendererProps> = ({ latex = "", displayMode = f
     
     try {
       // Clean up common issues with AI-generated LaTeX (like redundant backslashes or spaces)
-      const cleanLatex = String(latex)
+      let cleanLatex = String(latex)
         .replace(/\\\[/g, '')
         .replace(/\\\]/g, '')
         .replace(/\\\(/g, '')
         .replace(/\\\)/g, '')
+        // Sometimes AI wraps everything in multiple delimiters
+        .replace(/^\s*\$\$/g, '')
+        .replace(/\$\$\s*$/g, '')
+        .replace(/^\s*\$/g, '')
+        .replace(/\$\s*$/g, '')
         .trim();
 
       if (!cleanLatex) return "";
@@ -31,7 +36,12 @@ const MathRenderer: React.FC<MathRendererProps> = ({ latex = "", displayMode = f
         displayMode,
         throwOnError: false,
         trust: true,
-        strict: false
+        strict: false,
+        macros: {
+          "\\R": "\\mathbb{R}",
+          "\\N": "\\mathbb{N}",
+          "\\Z": "\\mathbb{Z}"
+        }
       });
     } catch (e) {
       console.error("KaTeX rendering error:", e);
@@ -43,7 +53,7 @@ const MathRenderer: React.FC<MathRendererProps> = ({ latex = "", displayMode = f
 
   return (
     <span 
-      className={`katex-math-render ${className} ${displayMode ? 'block my-4 overflow-x-auto overflow-y-hidden' : 'inline'}`}
+      className={`katex-math-render ${className} ${displayMode ? 'block my-4 w-full overflow-x-auto overflow-y-hidden' : 'inline'}`}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

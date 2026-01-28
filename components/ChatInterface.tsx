@@ -150,6 +150,10 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
     )
   };
 
+  const displayLevelLabel = language === 'BM' 
+    ? level.replace('Secondary', 'MENENGAH').replace('Primary', 'ASAS').replace('Pre-University', 'PRE-UNIVERSITI')
+    : level.toUpperCase();
+
   return (
     <div className="flex flex-col h-full bg-white dark:bg-[#0f172a] rounded-none md:rounded-2xl shadow-xl border-0 md:border border-slate-200 dark:border-slate-800 overflow-hidden">
       <div className="px-4 md:px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-[#0f172a]">
@@ -170,7 +174,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
           ))}
         </div>
         <div className="hidden md:block text-[10px] text-slate-400 dark:text-slate-500 font-black uppercase tracking-[0.2em]">
-          {level.includes('Intermediate') ? 'INTERMEDIATE' : level.split(' (')[0]}
+          {displayLevelLabel}
         </div>
       </div>
 

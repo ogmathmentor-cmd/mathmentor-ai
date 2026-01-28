@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { GraduationCap, Sparkles, BrainCircuit, BookOpen, Rocket, ArrowRight, Moon, Sun, Menu, User as UserIcon, Mail, Instagram, Phone, Star } from 'lucide-react';
 import { Feedback } from '../types';
@@ -19,6 +20,12 @@ interface HomeScreenProps {
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleTheme, onOpenMenu, onLogin, user, feedbacks }) => {
+  // Specific filter to remove the duplicated comments shown in the screenshot
+  const filteredFeedbacks = feedbacks.filter(fb => 
+    fb.message.trim() !== "This website really help me for understanding math. For me this website is already perfect" &&
+    fb.message.trim() !== "This website really help me for understanding math. For me this website is already perfect "
+  );
+
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950 flex flex-col items-center relative overflow-x-hidden transition-colors duration-500">
       {/* Background Decorative Blurs */}
@@ -119,7 +126,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
         </div>
 
         {/* Feedback Section (Wall of Love) */}
-        <div className="w-full max-w-5xl px-4 mb-24 animate-in fade-in slide-in-from-bottom-12 duration-1000">
+        <div id="wall-of-love" className="w-full max-w-5xl px-4 mb-24 animate-in fade-in slide-in-from-bottom-12 duration-1000 scroll-mt-24">
           <div className="text-center mb-8">
              <h2 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em] mb-4">Wall of Love</h2>
              <h3 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">Student Success Stories</h3>
@@ -129,30 +136,36 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
           <div className="bg-slate-50/30 dark:bg-slate-900/30 backdrop-blur-sm rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 p-6 md:p-8">
             <div className="max-h-[500px] md:max-h-[600px] overflow-y-auto custom-scrollbar pr-4 -mr-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-4">
-                {feedbacks.map((fb, i) => (
-                  <div 
-                    key={fb.id} 
-                    className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all group hover:-translate-y-1"
-                    style={{ animationDelay: `${i * 100}ms` }}
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-indigo-500 shadow-sm">
-                        <img src={fb.userPfp} alt={fb.userName} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="text-left min-w-0 flex-1">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{fb.userName}</p>
-                        <div className="flex gap-0.5">
-                          {[...Array(5)].map((_, idx) => (
-                            <Star key={idx} size={10} fill={idx < fb.rating ? "currentColor" : "none"} className={idx < fb.rating ? "text-amber-400" : "text-slate-300 dark:text-slate-700"} />
-                          ))}
+                {filteredFeedbacks.map((fb, i) => {
+                  const displayMessage = fb.message.length > 300 
+                    ? fb.message.substring(0, 300) + '...' 
+                    : fb.message;
+                  
+                  return (
+                    <div 
+                      key={fb.id} 
+                      className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border border-slate-200 dark:border-slate-800 p-6 rounded-[2rem] shadow-sm hover:shadow-md transition-all group hover:-translate-y-1"
+                      style={{ animationDelay: `${i * 100}ms` }}
+                    >
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-indigo-500 shadow-sm">
+                          <img src={fb.userPfp} alt={fb.userName} className="w-full h-full object-cover" />
+                        </div>
+                        <div className="text-left min-w-0 flex-1">
+                          <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{fb.userName}</p>
+                          <div className="flex gap-0.5">
+                            {[...Array(5)].map((_, idx) => (
+                              <Star key={idx} size={10} fill={idx < fb.rating ? "currentColor" : "none"} className={idx < fb.rating ? "text-amber-400" : "text-slate-300 dark:text-slate-700"} />
+                            ))}
+                          </div>
                         </div>
                       </div>
+                      <p className="text-left text-sm text-slate-600 dark:text-slate-400 italic leading-relaxed font-medium">
+                        "{displayMessage}"
+                      </p>
                     </div>
-                    <p className="text-left text-sm text-slate-600 dark:text-slate-400 italic leading-relaxed font-medium">
-                      "{fb.message}"
-                    </p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>

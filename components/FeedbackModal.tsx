@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { X, MessageSquare, Mail, Star, ChevronRight, Lock, LogIn } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { X, MessageSquare, Star, ChevronRight, Lock, LogIn, Heart } from 'lucide-react';
 
 interface FeedbackModalProps {
   isOpen: boolean;
@@ -8,31 +8,28 @@ interface FeedbackModalProps {
   onSubmit: (feedback: string, rating: number) => void;
   user: { name: string; email: string; pfp: string } | null;
   onSignIn: () => void;
+  hasAlreadySubmitted: boolean;
 }
 
-const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit, user, onSignIn }) => {
+const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit, user, onSignIn, hasAlreadySubmitted }) => {
   const [feedback, setFeedback] = useState('');
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
 
-  const operatorEmail = 'ogmathmentor@gmail.com';
+  const wordCount = useMemo(() => {
+    return feedback.trim().split(/\s+/).filter(Boolean).length;
+  }, [feedback]);
+
+  const isOverLimit = wordCount > 50;
 
   if (!isOpen) return null;
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!feedback.trim() || !user || rating === 0) return;
+    if (!feedback.trim() || !user || rating === 0 || isOverLimit || hasAlreadySubmitted) return;
 
-    // We do both: store locally and offer Gmail link
+    // Send to parent to handle Firebase and Navigation
     onSubmit(feedback, rating);
-    
-    const subject = `MathMentor Feedback: ${rating} Stars from ${user.name}`;
-    const body = `FEEDBACK REPORT\n---------------------------\nRating: ${rating}/5 Stars\nUser: ${user.name} (${user.email})\n\nMessage:\n"${feedback}"\n---------------------------`;
-    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(operatorEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    
-    // Optional: open Gmail after submitting to local system
-    window.open(gmailUrl, '_blank');
-    
     onClose();
   };
 
@@ -80,6 +77,24 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
                 Sign In to Continue
               </button>
             </div>
+          ) : hasAlreadySubmitted ? (
+            <div className="py-10 text-center flex flex-col items-center justify-center space-y-6">
+              <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 rounded-3xl flex items-center justify-center border-2 border-emerald-100 dark:border-emerald-800">
+                <Heart size={40} fill="currentColor" />
+              </div>
+              <div className="space-y-2">
+                <h4 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Feedback Received!</h4>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium max-w-[280px] mx-auto">
+                  You've already shared your success story. Thank you for being a part of our community!
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-full py-4 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white rounded-2xl text-sm font-black transition-all active:scale-95"
+              >
+                Close
+              </button>
+            </div>
           ) : (
             <form onSubmit={handleFormSubmit} className="space-y-6">
               <div className="space-y-3">
@@ -105,14 +120,26 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest ml-1">Message</label>
+                <div className="flex justify-between items-center px-1">
+                  <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Message</label>
+                  <span className={`text-[10px] font-black uppercase tracking-widest ${isOverLimit ? 'text-red-500' : 'text-slate-400'}`}>
+                    {wordCount}/50 words
+                  </span>
+                </div>
                 <textarea
                   required
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder="What's on your mind?..."
-                  className="w-full h-40 px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all resize-none text-slate-900 dark:text-white placeholder:text-slate-400 leading-relaxed"
+                  className={`w-full h-40 px-5 py-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border text-sm focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:outline-none transition-all resize-none text-slate-900 dark:text-white placeholder:text-slate-400 leading-relaxed ${
+                    isOverLimit ? 'border-red-500' : 'border-slate-200 dark:border-slate-800'
+                  }`}
                 />
+                {isOverLimit && (
+                  <p className="text-[10px] text-red-500 font-bold uppercase tracking-widest px-1">
+                    Please shorten your feedback to 50 words or less.
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-col gap-4">
@@ -126,11 +153,11 @@ const FeedbackModal: React.FC<FeedbackModalProps> = ({ isOpen, onClose, onSubmit
 
                 <button
                   type="submit"
-                  disabled={!feedback.trim() || rating === 0}
+                  disabled={!feedback.trim() || rating === 0 || isOverLimit}
                   className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white rounded-2xl text-sm font-black shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-95"
                 >
-                  <Mail size={20} />
-                  Submit Feedback
+                  <Heart size={20} />
+                  Post Success Story
                   <ChevronRight size={18} />
                 </button>
               </div>

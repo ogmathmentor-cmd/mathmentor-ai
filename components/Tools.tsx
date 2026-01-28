@@ -3,11 +3,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserLevel, Quiz, QuizDifficulty, Language } from '../types';
-import { ClipboardCheck, RefreshCw, Trophy, Award, CheckCircle2, XCircle, Info, ChevronRight, ArrowLeft, History, BookOpen, Sparkles, GraduationCap } from 'lucide-react';
+import { ClipboardCheck, RefreshCw, Trophy, Award, CheckCircle2, XCircle, Info, ChevronRight, ArrowLeft, History, BookOpen, Sparkles, GraduationCap, AlertTriangle, Lightbulb as LightbulbIcon } from 'lucide-react';
 import { generateQuiz } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+import MathRenderer from './MathRenderer';
 
 interface FocusAreaOption {
   label: string;
@@ -57,7 +58,9 @@ const UI_TRANSLATIONS: Record<Language, Record<string, string>> = {
     hard: 'SUKAR',
     adaptive: 'ADAPTIF',
     focusAreas: 'Kawasan Tumpuan',
-    learningLevel: 'Tahap Pembelajaran'
+    learningLevel: 'Tahap Pembelajaran',
+    commonPitfalls: 'Perangkap Biasa',
+    altMethods: 'Kaedah Alternatif'
   },
   EN: {
     quizCenter: 'Quiz Center',
@@ -90,8 +93,29 @@ const UI_TRANSLATIONS: Record<Language, Record<string, string>> = {
     hard: 'HARD',
     adaptive: 'ADAPTIVE',
     focusAreas: 'Focus Areas',
-    learningLevel: 'Learning Level'
+    learningLevel: 'Learning Level',
+    commonPitfalls: 'Common Pitfalls',
+    altMethods: 'Alternative Methods'
   }
+};
+
+const QuizMarkdownComponents: any = {
+  p: ({ children }: any) => <div className="mb-2 leading-relaxed">{children}</div>,
+  code: ({ children, inline, className }: any) => {
+    const isMath = className?.includes('language-math');
+    if (isMath && !inline) {
+      return (
+        <div className="my-3 flex justify-center">
+          <MathRenderer latex={String(children).replace(/\n$/, '')} displayMode={true} />
+        </div>
+      );
+    }
+    return inline 
+      ? <code className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded font-mono text-[0.9em]">{children}</code>
+      : <pre className="p-2 bg-slate-50 dark:bg-black/30 rounded-lg overflow-x-auto"><code>{children}</code></pre>
+  },
+  math: ({ value }: any) => <MathRenderer latex={value} displayMode={true} />,
+  inlineMath: ({ value }: any) => <MathRenderer latex={value} displayMode={false} />
 };
 
 export const ToolsPanel: React.FC<ToolsPanelProps> = ({ level, subLevel, setLevel, activeFocusAreas, toggleFocusArea, focusOptions, language }) => {
@@ -288,7 +312,7 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
 
         <div className="bg-slate-50 dark:bg-[#1e293b]/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
           <div className="text-slate-800 dark:text-slate-200 font-bold leading-relaxed prose prose-sm dark:prose-invert max-w-none text-[14px]">
-            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.question}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.question}</ReactMarkdown>
           </div>
         </div>
 
@@ -324,7 +348,7 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
                   {String.fromCharCode(65 + i)}
                 </span>
                 <div className="flex-1 text-[13px] font-medium leading-normal prose-xs dark:prose-invert">
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{opt}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{opt}</ReactMarkdown>
                 </div>
                 {checkIcon}
               </button>
@@ -333,15 +357,39 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
         </div>
 
         {isAnswered && (
-          <div className="animate-in fade-in slide-in-from-top-2 space-y-4">
+          <div className="animate-in fade-in slide-in-from-top-2 space-y-4 overflow-hidden">
             <div className="p-4 bg-indigo-50/10 dark:bg-indigo-900/10 rounded-2xl border-l-4 border-indigo-600 text-slate-600 dark:text-slate-300">
                <div className="flex items-center gap-2 mb-2 text-indigo-600 dark:text-indigo-400">
                   <Info size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">{t.explanation}</span>
                </div>
-               <div className="text-[12px] leading-relaxed prose prose-xs dark:prose-invert">
-                 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.explanation}</ReactMarkdown>
+               <div className="text-[12px] leading-relaxed prose prose-xs dark:prose-invert max-w-full overflow-x-auto">
+                 <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.explanation}</ReactMarkdown>
                </div>
+
+               {q.pitfalls && (
+                 <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2 mb-2 text-amber-600 dark:text-amber-400">
+                      <AlertTriangle size={14} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">{t.commonPitfalls}</span>
+                    </div>
+                    <div className="text-[12px] leading-relaxed prose prose-xs dark:prose-invert italic">
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.pitfalls}</ReactMarkdown>
+                    </div>
+                 </div>
+               )}
+
+               {q.alternatives && (
+                 <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center gap-2 mb-2 text-emerald-600 dark:text-emerald-400">
+                      <LightbulbIcon size={14} />
+                      <span className="text-[10px] font-black uppercase tracking-widest">{t.altMethods}</span>
+                    </div>
+                    <div className="text-[12px] leading-relaxed prose prose-xs dark:prose-invert">
+                      <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.alternatives}</ReactMarkdown>
+                    </div>
+                 </div>
+               )}
             </div>
             <button
               onClick={handleNextQuestion}
@@ -444,12 +492,21 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
                     )}
                  </div>
                  <div className="text-[13px] font-bold text-slate-800 dark:text-slate-200 prose-xs dark:prose-invert">
-                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.question}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.question}</ReactMarkdown>
                  </div>
                  <div className="p-3 rounded-xl bg-indigo-50/10 dark:bg-indigo-900/10 border border-indigo-100/10 dark:border-indigo-900/20 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400 prose-xs dark:prose-invert">
                     <div className="font-black text-indigo-600 dark:text-indigo-400 uppercase text-[9px] mb-1 tracking-widest">{t.howItWorks}</div>
-                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>{q.explanation}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.explanation}</ReactMarkdown>
                  </div>
+                 
+                 {q.pitfalls && (
+                   <div className="mt-2 p-3 rounded-xl bg-amber-50/10 dark:bg-amber-900/10 border border-amber-100/10 dark:border-amber-900/20">
+                      <div className="font-black text-amber-600 dark:text-amber-400 uppercase text-[9px] mb-1 tracking-widest flex items-center gap-1"><AlertTriangle size={10} /> {t.commonPitfalls}</div>
+                      <div className="text-[11px] text-slate-600 dark:text-slate-400 italic">
+                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.pitfalls}</ReactMarkdown>
+                      </div>
+                   </div>
+                 )}
                </div>
              );
            })}
