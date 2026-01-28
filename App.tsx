@@ -12,6 +12,8 @@ import AuthScreen from './components/AuthScreen';
 import SettingsView from './components/SettingsView';
 import FeedbackModal from './components/FeedbackModal';
 import QuickNotesView from './components/QuickNotesView';
+import UserGuide from './components/UserGuide';
+import LiveVoiceOverlay from './components/LiveVoiceOverlay';
 import Toast from './components/Toast';
 import { solveMathProblemStream, generateIllustration } from './services/geminiService';
 import { GoogleGenAI } from "@google/genai";
@@ -190,7 +192,8 @@ const STORAGE_KEYS = {
   FOCUS_AREAS: 'math_mentor_focusareas',
   USER_SESSION: 'math_mentor_user_session',
   FEEDBACKS: 'math_mentor_feedbacks',
-  HAS_SUBMITTED_FEEDBACK: 'math_mentor_has_submitted_feedback'
+  HAS_SUBMITTED_FEEDBACK: 'math_mentor_has_submitted_feedback',
+  GUIDE_VIEWED: 'math_mentor_guide_viewed'
 };
 
 const DEFAULT_FEEDBACKS: Feedback[] = [
@@ -204,6 +207,8 @@ const App: React.FC = () => {
   const [settingsTab, setSettingsTab] = useState<'account' | 'preferences'>('preferences');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [isVoiceOpen, setIsVoiceOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [toasts, setToasts] = useState<ToastType[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -297,6 +302,21 @@ const App: React.FC = () => {
       return () => feedbackRef.off('value', listener);
     }
   }, []);
+
+  // First time guide logic
+  useEffect(() => {
+    if (view === 'app') {
+      const guideViewed = localStorage.getItem(STORAGE_KEYS.GUIDE_VIEWED);
+      if (!guideViewed) {
+        setIsGuideOpen(true);
+      }
+    }
+  }, [view]);
+
+  const handleCloseGuide = () => {
+    setIsGuideOpen(false);
+    localStorage.setItem(STORAGE_KEYS.GUIDE_VIEWED, 'true');
+  };
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
@@ -651,6 +671,7 @@ const App: React.FC = () => {
         onClose={() => setIsDrawerOpen(false)} 
         onNavigate={handleNavigate} 
         onOpenFeedback={() => setIsFeedbackModalOpen(true)}
+        onOpenGuide={() => setIsGuideOpen(true)}
         currentView={view} 
       />
       
@@ -667,6 +688,20 @@ const App: React.FC = () => {
         user={user}
         onSignIn={() => { setIsFeedbackModalOpen(false); setIsAuthModalOpen(true); }}
         hasAlreadySubmitted={hasSubmittedFeedback}
+      />
+
+      <UserGuide 
+        isOpen={isGuideOpen} 
+        onClose={handleCloseGuide} 
+        level={level} 
+        language={language} 
+      />
+
+      <LiveVoiceOverlay 
+        isOpen={isVoiceOpen} 
+        onClose={() => setIsVoiceOpen(false)} 
+        level={level} 
+        language={language} 
       />
 
       {view === 'home' ? (
@@ -745,7 +780,17 @@ const App: React.FC = () => {
                 )}
 
                 <div className={`flex flex-col h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:col-span-12' : (isFocusMinimized ? 'lg:col-span-8' : 'lg:col-span-7')}`}>
-                  <ChatInterface messages={messages} onSendMessage={handleSendMessage} isLoading={isLoading} level={level} activeMode={chatMode} setActiveMode={setChatMode} onError={addToast} language={language} />
+                  <ChatInterface 
+                    messages={messages} 
+                    onSendMessage={handleSendMessage} 
+                    isLoading={isLoading} 
+                    level={level} 
+                    activeMode={chatMode} 
+                    setActiveMode={setChatMode} 
+                    onError={addToast} 
+                    language={language}
+                    onOpenVoice={() => setIsVoiceOpen(true)}
+                  />
                 </div>
 
                 <div className={`hidden lg:block h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:hidden' : 'lg:col-span-3'}`}>

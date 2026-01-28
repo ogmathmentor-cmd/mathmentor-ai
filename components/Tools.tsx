@@ -131,7 +131,7 @@ export const ToolsPanel: React.FC<ToolsPanelProps> = ({ level, subLevel, setLeve
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
+      <div className="flex-1 overflow-y-auto custom-scrollbar bg-white dark:bg-[#0f172a]">
         <QuizCenter level={level} subLevel={subLevel} activeFocusAreas={activeFocusAreas} language={language} />
       </div>
     </div>
@@ -222,9 +222,9 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
     };
 
     return (
-      <div className="p-6 space-y-8 animate-in fade-in duration-500 bg-[#0f172a] h-full">
+      <div className="p-6 space-y-8 animate-in fade-in duration-500 bg-white dark:bg-[#0f172a] h-full">
         <div className="space-y-2">
-          <div className="flex items-center gap-2 text-indigo-400">
+          <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
              <BookOpen size={16} strokeWidth={3} />
              <h3 className="text-[12px] font-black uppercase tracking-widest">{t.setupTitle}</h3>
           </div>
@@ -233,7 +233,7 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
 
         <div className="space-y-6">
           <div className="space-y-2">
-            <span className="text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest ml-1">{t.customTopic}</span>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest ml-1">{t.customTopic}</span>
             <input
               type="text"
               placeholder={t.placeholder}
@@ -251,7 +251,7 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
                 className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg ${
                   difficulty === d
                     ? getDifficultyColor(d)
-                    : 'bg-slate-50 dark:bg-[#1e293b] text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-[#2e3b4e]'
+                    : 'bg-slate-50 dark:bg-[#1e293b] text-slate-500 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-[#2e3b4e]'
                 }`}
               >
                 {t[d]}
@@ -260,13 +260,13 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
           </div>
 
           <div className="space-y-3">
-            <span className="text-[10px] font-black text-slate-500 dark:text-slate-600 uppercase tracking-widest">{t.suggestions}</span>
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-widest">{t.suggestions}</span>
             <div className="flex flex-wrap gap-2">
               {suggestions[level]?.map((s) => (
                 <button
                   key={s}
                   onClick={() => setTopic(s)}
-                  className="px-3 py-2 bg-slate-50 dark:bg-[#1e293b] text-slate-500 dark:text-slate-400 text-[10px] font-bold rounded-xl border border-slate-100 dark:border-slate-800 hover:border-indigo-500/50 hover:text-indigo-600 transition-all"
+                  className="px-3 py-2 bg-slate-50 dark:bg-[#1e293b] text-slate-600 dark:text-slate-400 text-[10px] font-bold rounded-xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 hover:text-indigo-600 transition-all"
                 >
                   {s}
                 </button>
@@ -291,15 +291,15 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
     const q = quiz.questions[currentIndex];
     
     return (
-      <div className="p-6 space-y-6 animate-in slide-in-from-right-4 duration-300 bg-[#0f172a] h-full">
+      <div className="p-6 space-y-6 animate-in slide-in-from-right-4 duration-300 bg-white dark:bg-[#0f172a] h-full">
         <div className="flex justify-between items-end">
           <div className="space-y-1">
-            <h4 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em]">{t.inProgress}</h4>
+            <h4 className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.2em]">{t.inProgress}</h4>
             <p className="text-xs font-bold text-slate-500">{t.question} {currentIndex + 1} of {quiz.questions.length}</p>
           </div>
           <div className="text-right">
-            <div className="text-sm font-black text-white">{score}/{quiz.questions.length}</div>
-            <div className="text-[9px] font-bold text-slate-500 uppercase">{t.correct}</div>
+            <div className="text-sm font-black text-slate-900 dark:text-white">{score}/{quiz.questions.length}</div>
+            <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase">{t.correct}</div>
           </div>
         </div>
 
@@ -310,7 +310,7 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
           />
         </div>
 
-        <div className="bg-slate-50 dark:bg-[#1e293b]/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50">
+        <div className="bg-slate-50 dark:bg-[#1e293b]/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/50 shadow-sm">
           <div className="text-slate-800 dark:text-slate-200 font-bold leading-relaxed prose prose-sm dark:prose-invert max-w-none text-[14px]">
             <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.question}</ReactMarkdown>
           </div>
@@ -340,7 +340,7 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
                 key={i}
                 onClick={() => !isAnswered && setSelectedOption(i)}
                 disabled={isAnswered}
-                className={`group text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 relative overflow-hidden min-h-[56px] ${statusClass}`}
+                className={`group text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3 relative overflow-hidden min-h-[56px] shadow-sm ${statusClass}`}
               >
                 <span className={`w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center text-[10px] font-black transition-colors shadow-sm ${
                   selectedOption === i ? 'bg-indigo-600 text-white' : 'bg-slate-100 dark:bg-[#1e293b] text-slate-400'
@@ -358,7 +358,7 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
 
         {isAnswered && (
           <div className="animate-in fade-in slide-in-from-top-2 space-y-4 overflow-hidden">
-            <div className="p-4 bg-indigo-50/10 dark:bg-indigo-900/10 rounded-2xl border-l-4 border-indigo-600 text-slate-600 dark:text-slate-300">
+            <div className="p-4 bg-indigo-50/10 dark:bg-indigo-900/10 rounded-2xl border-l-4 border-indigo-600 text-slate-600 dark:text-slate-300 shadow-sm">
                <div className="flex items-center gap-2 mb-2 text-indigo-600 dark:text-indigo-400">
                   <Info size={14} />
                   <span className="text-[10px] font-black uppercase tracking-widest">{t.explanation}</span>
@@ -405,7 +405,7 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
           <button
             onClick={handleCheckAnswer}
             disabled={selectedOption === null}
-            className="w-full py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-30 disabled:grayscale"
+            className="w-full py-4 bg-indigo-600 text-white rounded-2xl text-sm font-black flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-30 disabled:grayscale shadow-xl shadow-indigo-500/10"
           >
             {t.submit}
           </button>
@@ -418,7 +418,7 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
     const performance = (score / quiz.questions.length) * 100;
     
     return (
-      <div className="p-8 space-y-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-500 bg-[#0f172a] h-full">
+      <div className="p-8 space-y-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-500 bg-white dark:bg-[#0f172a] h-full">
         <div className="relative pt-6">
           <div className="w-28 h-28 rounded-full bg-slate-50 dark:bg-[#1e293b] flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-inner relative border-2 border-indigo-100 dark:border-indigo-900/50">
              <Trophy size={56} className={`${performance >= 80 ? 'animate-bounce' : ''}`} />
@@ -435,11 +435,11 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
         </div>
 
         <div className="grid grid-cols-2 gap-4 w-full">
-           <div className="bg-slate-50 dark:bg-[#1e293b]/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-center">
+           <div className="bg-slate-50 dark:bg-[#1e293b]/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-center shadow-sm">
              <div className="text-2xl font-black text-slate-900 dark:text-white">{score}/{quiz.questions.length}</div>
              <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{t.score}</div>
            </div>
-           <div className="bg-slate-50 dark:bg-[#1e293b]/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-center">
+           <div className="bg-slate-50 dark:bg-[#1e293b]/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 text-center shadow-sm">
              <div className="text-2xl font-black text-slate-900 dark:text-white">{Math.round(performance)}%</div>
              <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">{t.result}</div>
            </div>
@@ -448,7 +448,7 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
         <div className="w-full space-y-3">
           <button
             onClick={() => setQuizState('review')}
-            className="w-full py-4 bg-slate-100 dark:bg-[#1e293b] text-slate-900 dark:text-white rounded-2xl text-sm font-black flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-[0.98]"
+            className="w-full py-4 bg-slate-100 dark:bg-[#1e293b] text-slate-900 dark:text-white rounded-2xl text-sm font-black flex items-center justify-center gap-2 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all active:scale-[0.98] shadow-sm border border-slate-200 dark:border-slate-700"
           >
             <History size={18} />
             {t.seeAnswers}
@@ -466,15 +466,15 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
 
   if (quizState === 'review' && quiz) {
     return (
-      <div className="p-6 space-y-6 animate-in slide-in-from-left-4 duration-300 h-full flex flex-col bg-[#0f172a]">
+      <div className="p-6 space-y-6 animate-in slide-in-from-left-4 duration-300 h-full flex flex-col bg-white dark:bg-[#0f172a]">
         <div className="flex items-center justify-between">
            <button 
              onClick={() => setQuizState('finished')}
-             className="p-2.5 rounded-xl bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 hover:scale-105 transition-all flex items-center justify-center"
+             className="p-2.5 rounded-xl bg-slate-100 dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 hover:scale-105 transition-all flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-sm"
            >
              <ArrowLeft size={20} />
            </button>
-           <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">{t.reviewTitle}</h3>
+           <h3 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">{t.reviewTitle}</h3>
            <div className="w-9" />
         </div>
 
@@ -482,26 +482,26 @@ const QuizCenter: React.FC<{ level: UserLevel; subLevel: string | null; activeFo
            {quiz.questions.map((q, i) => {
              const result = results[i];
              return (
-               <div key={i} className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-[#1e293b]/30 border border-slate-100 dark:border-slate-800">
+               <div key={i} className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-[#1e293b]/30 border border-slate-100 dark:border-slate-800 shadow-sm">
                  <div className="flex items-center justify-between">
                     <span className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase">{t.question} {i+1}</span>
                     {result?.isCorrect ? (
-                      <span className="flex items-center gap-1 text-[9px] font-black text-emerald-500 uppercase"><CheckCircle2 size={10} /> {t.correct}</span>
+                      <span className="flex items-center gap-1 text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase"><CheckCircle2 size={10} /> {t.correct}</span>
                     ) : (
-                      <span className="flex items-center gap-1 text-[9px] font-black text-red-400 uppercase"><XCircle size={10} /> {t.wrong}</span>
+                      <span className="flex items-center gap-1 text-[9px] font-black text-red-500 dark:text-red-400 uppercase"><XCircle size={10} /> {t.wrong}</span>
                     )}
                  </div>
                  <div className="text-[13px] font-bold text-slate-800 dark:text-slate-200 prose-xs dark:prose-invert">
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.question}</ReactMarkdown>
                  </div>
-                 <div className="p-3 rounded-xl bg-indigo-50/10 dark:bg-indigo-900/10 border border-indigo-100/10 dark:border-indigo-900/20 text-[11px] leading-relaxed text-slate-600 dark:text-slate-400 prose-xs dark:prose-invert">
+                 <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/20 text-[11px] leading-relaxed text-slate-700 dark:text-slate-400 prose-xs dark:prose-invert">
                     <div className="font-black text-indigo-600 dark:text-indigo-400 uppercase text-[9px] mb-1 tracking-widest">{t.howItWorks}</div>
                     <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.explanation}</ReactMarkdown>
                  </div>
                  
                  {q.pitfalls && (
-                   <div className="mt-2 p-3 rounded-xl bg-amber-50/10 dark:bg-amber-900/10 border border-amber-100/10 dark:border-amber-900/20">
-                      <div className="font-black text-amber-600 dark:text-amber-400 uppercase text-[9px] mb-1 tracking-widest flex items-center gap-1"><AlertTriangle size={10} /> {t.commonPitfalls}</div>
+                   <div className="mt-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20">
+                      <div className="font-black text-amber-700 dark:text-amber-400 uppercase text-[9px] mb-1 tracking-widest flex items-center gap-1"><AlertTriangle size={10} /> {t.commonPitfalls}</div>
                       <div className="text-[11px] text-slate-600 dark:text-slate-400 italic">
                         <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{q.pitfalls}</ReactMarkdown>
                       </div>

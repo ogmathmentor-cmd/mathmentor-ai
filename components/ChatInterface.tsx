@@ -1,3 +1,4 @@
+
 // components/ChatInterface.tsx
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -7,7 +8,8 @@ import {
   Image as ImageIcon, ExternalLink, X, Info, 
   GraduationCap, Trophy, Lightbulb, ListChecks, 
   HelpCircle, Sparkles, ChevronRight, Loader2, 
-  ArrowDown, Plus, Minus, Maximize2, RotateCcw
+  ArrowDown, Plus, Minus, Maximize2, RotateCcw,
+  Mic
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
@@ -23,6 +25,7 @@ interface ChatInterfaceProps {
   setActiveMode: (mode: ChatMode) => void;
   onError: (msg: string) => void;
   language: Language;
+  onOpenVoice: () => void;
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -33,7 +36,7 @@ const MODE_METADATA: Record<ChatMode, { label: string; icon: React.ReactNode; de
   fast: { label: 'FAST ANSWER', icon: <Zap size={12} />, desc: 'DIRECT MATH ONLY', color: 'text-amber-500' }
 };
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, isLoading, level, activeMode, setActiveMode, onError, language }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, isLoading, level, activeMode, setActiveMode, onError, language, onOpenVoice }) => {
   const [input, setInput] = useState('');
   const [selectedFile, setSelectedFile] = useState<FileAttachment | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -201,35 +204,43 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
           ))}
         </div>
 
-        {/* Improved Integrated Zoom Controls - Moved to the right (secondary area) as requested */}
-        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1e293b] p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
-          <button 
-            onClick={() => handleZoom(-10)}
-            disabled={zoomLevel <= 50}
-            className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-all disabled:opacity-20 active:scale-90"
-            title="Zoom Out"
-          >
-            <Minus size={14} strokeWidth={3} />
-          </button>
-          
-          <button 
-            onClick={resetZoom}
-            className="flex flex-col items-center px-2 py-0.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 transition-all group"
-            title="Reset to 100%"
-          >
-            <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 group-hover:text-indigo-500 transition-colors">
-              {zoomLevel}%
-            </span>
-          </button>
+        <div className="flex items-center gap-2">
+            <button 
+                onClick={onOpenVoice}
+                className="flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 active:scale-95 group"
+            >
+                <Mic size={14} className="group-hover:animate-pulse" />
+                <span className="hidden sm:inline">Voice Tutor</span>
+            </button>
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-[#1e293b] p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm transition-all">
+            <button 
+                onClick={() => handleZoom(-10)}
+                disabled={zoomLevel <= 50}
+                className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-all disabled:opacity-20 active:scale-90"
+                title="Zoom Out"
+            >
+                <Minus size={14} strokeWidth={3} />
+            </button>
+            
+            <button 
+                onClick={resetZoom}
+                className="flex flex-col items-center px-2 py-0.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 transition-all group"
+                title="Reset to 100%"
+            >
+                <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 group-hover:text-indigo-500 transition-colors">
+                {zoomLevel}%
+                </span>
+            </button>
 
-          <button 
-            onClick={() => handleZoom(10)}
-            disabled={zoomLevel >= 200}
-            className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-all disabled:opacity-20 active:scale-90"
-            title="Zoom In"
-          >
-            <Plus size={14} strokeWidth={3} />
-          </button>
+            <button 
+                onClick={() => handleZoom(10)}
+                disabled={zoomLevel >= 200}
+                className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-all disabled:opacity-20 active:scale-90"
+                title="Zoom In"
+            >
+                <Plus size={14} strokeWidth={3} />
+            </button>
+            </div>
         </div>
       </div>
 

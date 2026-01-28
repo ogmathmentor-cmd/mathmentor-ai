@@ -1,16 +1,17 @@
 
 import React from 'react';
-import { Home, Brain, StickyNote, X, GraduationCap, Settings, MessageSquare, Zap } from 'lucide-react';
+import { Home, Brain, StickyNote, X, GraduationCap, Settings, MessageSquare, Zap, HelpCircle } from 'lucide-react';
 
 interface NavigationDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (view: 'home' | 'app' | 'settings' | 'quicknotes') => void;
   onOpenFeedback: () => void;
+  onOpenGuide: () => void;
   currentView: 'home' | 'app' | 'settings' | 'quicknotes';
 }
 
-const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, onNavigate, onOpenFeedback, currentView }) => {
+const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, onNavigate, onOpenFeedback, onOpenGuide, currentView }) => {
   return (
     <>
       {/* Backdrop */}
@@ -83,6 +84,14 @@ const NavigationDrawer: React.FC<NavigationDrawerProps> = ({ isOpen, onClose, on
             </button>
 
             <div className="my-4 border-t border-slate-100 dark:border-slate-800" />
+
+            <button
+              onClick={() => { onOpenGuide(); onClose(); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all"
+            >
+              <HelpCircle size={18} />
+              Quick Start Guide
+            </button>
 
             {/* Pro Subscription - Placeholder UI */}
             <button
