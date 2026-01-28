@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -32,11 +31,10 @@
       }
     </script>
     
-    <!-- Firebase SDK (v8 Compatibility Layer) -->
+    <!-- Firebase SDK (v8 Compatibility Layer for legacy Realtime DB features) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script>
-      // Initialize Firebase for the whole app
       const firebaseConfig = {
         apiKey: "AIzaSyAKa7rc7cYEDxPfqdqnX86BTz_xiBElPnI",
         authDomain: "ogmathmentor-f1a1f.firebaseapp.com",
@@ -50,116 +48,35 @@
       if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
       }
-      // Expose globally for React components
       window.firebaseDatabase = firebase.database();
     </script>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      /* 1. Global Reset & Box Sizing */
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      :root {
-        --bg-primary: #ffffff;
-      }
-      .dark {
-        --bg-primary: #020617; /* slate-950 */
-      }
-
-      /* 2. Fixed App Layout */
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      :root { --bg-primary: #ffffff; }
+      .dark { --bg-primary: #020617; }
       html, body {
-        width: 100%;
-        height: 100%;
-        font-family: 'Inter', sans-serif;
-        background-color: var(--bg-primary);
-        transition: background-color 0.4s ease;
-        overflow: hidden; /* Prevent body-level scrolling */
+        width: 100%; height: 100%; font-family: 'Inter', sans-serif;
+        background-color: var(--bg-primary); transition: background-color 0.4s ease;
+        overflow: hidden;
       }
-
-      /* KaTeX Enhancement */
-      .katex {
-        font-size: 1.05em;
-        text-rendering: optimizeLegibility;
-      }
-      
-      .katex-display {
-        margin: 1.25rem 0;
-        padding: 0.5rem;
-        overflow-x: auto;
-        overflow-y: hidden;
-        -webkit-overflow-scrolling: touch;
-      }
-
-      /* Better Matrix Spacing */
-      .katex .matrix-col-sep {
-        width: 1em;
-      }
-
-      .dark .katex {
-        color: #f1f5f9;
-      }
-
-      /* Root container fixed to viewport */
-      #root {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-      }
-      
-      .pb-safe {
-        padding-bottom: env(safe-area-inset-bottom);
-      }
-      .pt-safe {
-        padding-top: env(safe-area-inset-top);
-      }
-
-      *, ::before, ::after {
-        transition-property: background-color, border-color, color, fill, stroke;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 200ms;
-      }
-
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #e2e8f0;
-        border-radius: 10px;
-      }
-      .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #1e293b;
-      }
-
-      /* MOBILE ONLY: Math Content Fixes */
+      .katex { font-size: 1.05em; text-rendering: optimizeLegibility; }
+      .katex-display { margin: 1.25rem 0; padding: 0.5rem; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+      .katex .matrix-col-sep { width: 1em; }
+      .dark .katex { color: #f1f5f9; }
+      #root { width: 100%; height: 100%; display: flex; flex-direction: column; }
+      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+      .pt-safe { padding-top: env(safe-area-inset-top); }
+      .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+      .dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; }
       @media (max-width: 768px) {
-        .katex-display {
-          overflow-x: auto;
-          overflow-y: hidden;
-          padding: 1rem 0;
-          margin: 0.5rem 0;
-          -webkit-overflow-scrolling: touch;
-        }
-        .katex-display::-webkit-scrollbar {
-          height: 3px;
-        }
-        .katex-display::-webkit-scrollbar-thumb {
-          background: rgba(99, 102, 241, 0.2);
-          border-radius: 10px;
-        }
-        .prose {
-          font-size: 14px !important;
-          line-height: 1.6;
-        }
+        .katex-display { overflow-x: auto; overflow-y: hidden; padding: 1rem 0; margin: 0.5rem 0; -webkit-overflow-scrolling: touch; }
+        .katex-display::-webkit-scrollbar { height: 3px; }
+        .prose { font-size: 14px !important; line-height: 1.6; }
       }
     </style>
     <script type="importmap">
@@ -174,9 +91,13 @@
     "remark-math": "https://esm.sh/remark-math@6.0.0?bundle",
     "react-markdown": "https://esm.sh/react-markdown@10.0.0?bundle&external=react,react-dom",
     "katex": "https://esm.sh/katex@0.16.8",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+    "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js",
     "vite": "https://esm.sh/vite@^7.3.1",
+    "firebase/": "https://esm.sh/firebase@^12.8.0/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }

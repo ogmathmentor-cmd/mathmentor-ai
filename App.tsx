@@ -1,4 +1,3 @@
-
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -16,7 +15,9 @@ import UserGuide from './components/UserGuide';
 import LiveVoiceOverlay from './components/LiveVoiceOverlay';
 import Toast from './components/Toast';
 import { solveMathProblemStream, generateIllustration } from './services/geminiService';
-import { GoogleGenAI } from "@google/genai";
+import { auth, db } from './firebase';
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { Sparkles, ChevronLeft, ChevronRight, WifiOff } from 'lucide-react';
 
 interface FocusArea {
@@ -181,6 +182,7 @@ interface User {
   name: string;
   email: string;
   pfp: string;
+  uid?: string;
 }
 
 const STORAGE_KEYS = {
@@ -238,16 +240,42 @@ const App: React.FC = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  // Load state from localStorage on mount & Initialize Firebase Listeners
+  // Firebase Auth Listener
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userData: User = {
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Scholar',
+          email: firebaseUser.email || '',
+          pfp: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.email}`
+        };
+        setUser(userData);
+        
+        // Load settings from Firestore
+        try {
+          const docRef = doc(db, "users", firebaseUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.level) setLevel(data.level as UserLevel);
+            if (data.mode) setChatMode(data.mode as ChatMode);
+            if (data.language) setLanguage(data.language as Language);
+            // etc
+          }
+        } catch (e) { console.error("Firestore Load Error:", e); }
+      } else {
+        setUser(null);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Load other local state
   useEffect(() => {
     const savedMessages = localStorage.getItem(STORAGE_KEYS.MESSAGES);
-    const savedLevel = localStorage.getItem(STORAGE_KEYS.LEVEL);
-    const savedSublevel = localStorage.getItem(STORAGE_KEYS.SUBLEVEL);
     const savedLanguage = localStorage.getItem(STORAGE_KEYS.LANGUAGE);
-    const savedChatmode = localStorage.getItem(STORAGE_KEYS.CHATMODE);
     const savedFocus = localStorage.getItem(STORAGE_KEYS.FOCUS_AREAS);
-    const savedUser = localStorage.getItem(STORAGE_KEYS.USER_SESSION);
-    const savedFeedbackStatus = localStorage.getItem(STORAGE_KEYS.HAS_SUBMITTED_FEEDBACK);
 
     if (savedMessages) {
       try {
@@ -255,31 +283,9 @@ const App: React.FC = () => {
         setMessages(parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) })));
       } catch (e) { console.error("Failed to load history", e); }
     }
-    if (savedLevel && Object.values(UserLevel).includes(savedLevel as UserLevel)) {
-      setLevel(savedLevel as UserLevel);
-    } else {
-      setLevel(UserLevel.INTERMEDIATE);
-    }
-    
-    if (savedSublevel) setSubLevel(savedSublevel === 'null' ? null : savedSublevel);
     if (savedLanguage) setLanguage(savedLanguage as Language);
-    if (savedChatmode) setChatMode(savedChatmode === 'null' ? null : savedChatmode as ChatMode);
     if (savedFocus) {
       try { setActiveFocusAreas(JSON.parse(savedFocus)); } catch (e) {}
-    }
-    if (savedFeedbackStatus === 'true') setHasSubmittedFeedback(true);
-
-    if (savedUser) {
-      try { 
-        const parsedUser = JSON.parse(savedUser);
-        setUser(parsedUser);
-        setTimeout(() => {
-          addToast(language === 'BM' 
-            ? `Selamat kembali, ${parsedUser.name.split(' ')[0]}! Sedia untuk belajar lagi?` 
-            : `Welcome back, ${parsedUser.name.split(' ')[0]}! Ready for more math?`, 
-          'success');
-        }, 800);
-      } catch (e) { console.error("Failed to load user session", e); }
     }
 
     if (window.firebaseDatabase) {
@@ -295,7 +301,6 @@ const App: React.FC = () => {
             message: val.message,
             timestamp: new Date(val.timestamp)
           })).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-          
           setFeedbacks([...liveFeedbacks, ...DEFAULT_FEEDBACKS]);
         }
       });
@@ -303,13 +308,10 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // First time guide logic
   useEffect(() => {
     if (view === 'app') {
       const guideViewed = localStorage.getItem(STORAGE_KEYS.GUIDE_VIEWED);
-      if (!guideViewed) {
-        setIsGuideOpen(true);
-      }
+      if (!guideViewed) setIsGuideOpen(true);
     }
   }, [view]);
 
@@ -323,51 +325,11 @@ const App: React.FC = () => {
   }, [messages]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.LEVEL, level);
-    localStorage.setItem(STORAGE_KEYS.SUBLEVEL, String(subLevel));
-  }, [level, subLevel]);
-
-  useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.LANGUAGE, language);
   }, [language]);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CHATMODE, String(chatMode));
-  }, [chatMode]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.FOCUS_AREAS, JSON.stringify(activeFocusAreas));
-  }, [activeFocusAreas]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem(STORAGE_KEYS.USER_SESSION, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(STORAGE_KEYS.USER_SESSION);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      addToast("Connection restored.", 'success');
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-      addToast("You are currently offline.", 'error');
-    };
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // Update root viewport unit height logic
   const currentFocusOptions = useMemo(() => {
     if (level === UserLevel.OPENAI) return [];
-    
     if (subLevel && KSSM_INTERMEDIATE_DATA[subLevel]) {
       const labels = KSSM_INTERMEDIATE_DATA[subLevel][language];
       return labels.map((label, idx) => ({
@@ -376,18 +338,10 @@ const App: React.FC = () => {
         inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-[#1e293b] dark:text-slate-500'
       }));
     }
-
-    let options = (subLevel && SUB_LEVEL_FOCUS_MAP[subLevel]) 
-      ? [...SUB_LEVEL_FOCUS_MAP[subLevel]] 
-      : [...(LEVEL_FOCUS_MAP[level] || [])];
-
+    let options = (subLevel && SUB_LEVEL_FOCUS_MAP[subLevel]) ? [...SUB_LEVEL_FOCUS_MAP[subLevel]] : [...(LEVEL_FOCUS_MAP[level] || [])];
     if (language === 'BM' && level === UserLevel.BEGINNER) {
-      return options.map(area => ({
-        ...area,
-        label: PRIMARY_TRANSLATIONS[area.label] || area.label
-      }));
+      return options.map(area => ({ ...area, label: PRIMARY_TRANSLATIONS[area.label] || area.label }));
     }
-
     return options;
   }, [level, subLevel, language]);
 
@@ -397,312 +351,133 @@ const App: React.FC = () => {
     else root.classList.remove('dark');
   }, [isDarkMode]);
 
-  const handleLevelChange = (newLevel: UserLevel, newSubLevel: string | null = null) => {
+  const handleLevelChange = async (newLevel: UserLevel, newSubLevel: string | null = null) => {
     setLevel(newLevel);
     setSubLevel(newSubLevel);
     setActiveFocusAreas([]);
     setMessages([]);
     setChatMode('learning'); 
     setPendingProblem(null);
+    if (user?.uid) {
+      try { await updateDoc(doc(db, "users", user.uid), { level: newLevel, subLevel: newSubLevel }); } catch(e){}
+    }
   };
 
   const toggleFocusArea = (label: string) => {
-    setActiveFocusAreas(prev => prev.includes(label) ? prev.filter(a => a !== label) : [...prev, label]);
+    const next = activeFocusAreas.includes(label) ? activeFocusAreas.filter(a => a !== label) : [...activeFocusAreas, label];
+    setActiveFocusAreas(next);
+    localStorage.setItem(STORAGE_KEYS.FOCUS_AREAS, JSON.stringify(next));
   };
 
   const handleKeySelection = async () => {
     const isKeySelected = await (window as any).aistudio.hasSelectedApiKey();
     if (!isKeySelected) {
-      addToast("Pro Models require a paid API key. Please select your key.", "info");
+      addToast("Pro Models require a paid API key.", "info");
       await (window as any).aistudio.openSelectKey();
     }
   };
 
   const executeSolve = async (text: string, mode: ChatMode, attachment?: FileAttachment, manualImage?: string, history: Message[] = []) => {
     if (!isOnline) {
-      addToast("Network issue detected. Please check your connection.", 'error');
-      setMessages(prev => [...prev, { 
-        role: 'model', 
-        text: language === 'BM' ? "Maaf, anda sedang luar talian." : "Sorry, you are currently offline.", 
-        timestamp: new Date(),
-        error: true
-      }]);
+      addToast("Network issue detected.", 'error');
+      setMessages(prev => [...prev, { role: 'model', text: language === 'BM' ? "Maaf, anda luar talian." : "Sorry, you are offline.", timestamp: new Date(), error: true }]);
       return;
     }
-
-    const isForcedPro = level === UserLevel.OPENAI;
-    if (isForcedPro) {
-      await handleKeySelection();
-    }
-
+    if (level === UserLevel.OPENAI) await handleKeySelection();
     setIsLoading(true);
     let illustrationStarted = false;
-    
-    setMessages(prev => [...prev, {
-      role: 'model',
-      text: "",
-      timestamp: new Date()
-    }]);
-
+    setMessages(prev => [...prev, { role: 'model', text: "", timestamp: new Date() }]);
     try {
-      const response = await solveMathProblemStream(
-        text, 
-        history, 
-        level, 
-        mode, 
-        language, 
-        (streamedText) => {
-          // Detect [ILLUSTRATE: ...] tag early in the stream
+      const response = await solveMathProblemStream(text, history, level, mode, language, (streamedText) => {
           if (!illustrationStarted) {
             const match = streamedText.match(/\[ILLUSTRATE:\s*([^\]]+)\]/);
             if (match) {
               illustrationStarted = true;
               const prompt = match[1];
-              
-              // Set generating flag
-              setMessages(prev => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last) updated[updated.length - 1] = { ...last, isGeneratingImage: true };
-                return updated;
-              });
-
-              // Trigger image generation in parallel
-              generateIllustration(prompt).then(img => {
-                setMessages(prev => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  if (last) updated[updated.length - 1] = { ...last, image: img || undefined, isGeneratingImage: false };
-                  return updated;
-                });
-              }).catch(() => {
-                setMessages(prev => {
-                  const updated = [...prev];
-                  const last = updated[updated.length - 1];
-                  if (last) updated[updated.length - 1] = { ...last, isGeneratingImage: false };
-                  return updated;
-                });
-              });
+              setMessages(prev => { const u = [...prev]; const l = u[u.length-1]; if(l) u[u.length-1] = {...l, isGeneratingImage: true}; return u; });
+              generateIllustration(prompt).then(img => { setMessages(prev => { const u = [...prev]; const l = u[u.length-1]; if(l) u[u.length-1] = {...l, image: img || undefined, isGeneratingImage: false}; return u; }); });
             }
           }
-
-          // Strip the illustration tag from the visible streaming text
           const cleanStreamingText = streamedText.replace(/\[ILLUSTRATE:[\s\S]*?\]/g, '');
-
-          setMessages(prev => {
-            const updated = [...prev];
-            if (updated.length > 0) {
-              updated[updated.length - 1] = { 
-                ...updated[updated.length - 1], 
-                text: cleanStreamingText 
-              };
-            }
-            return updated;
-          });
-        },
-        attachment, 
-        activeFocusAreas, 
-        subLevel, 
-        socraticEnabled, 
-        reasoningMode
-      );
-      
-      let finalResponseText = response.text || "";
-      finalResponseText = finalResponseText.replace(/\[ILLUSTRATE:[\s\S]*?\]/g, '').trim();
-
-      setMessages(prev => {
-        const updated = [...prev];
-        if (updated.length > 0) {
-          updated[updated.length - 1] = {
-            ...updated[updated.length - 1],
-            text: finalResponseText,
-            citations: response.citations,
-            error: response.isError
-          };
-        }
-        return updated;
-      });
+          setMessages(prev => { const u = [...prev]; if (u.length > 0) u[u.length-1] = { ...u[u.length-1], text: cleanStreamingText }; return u; });
+        }, attachment, activeFocusAreas, subLevel, socraticEnabled, reasoningMode);
+      let finalResponseText = (response.text || "").replace(/\[ILLUSTRATE:[\s\S]*?\]/g, '').trim();
+      setMessages(prev => { const u = [...prev]; if (u.length > 0) u[u.length-1] = { ...u[u.length-1], text: finalResponseText, citations: response.citations, error: response.isError }; return u; });
     } catch (error: any) {
-      console.error("Final Execution error after retries", error);
-      const message = error?.message || "";
-      const isTransient = message.includes('503') || message.includes('429') || message.includes('overloaded') || message.includes('Resource has been exhausted');
-      
-      setMessages(prev => {
-        const updated = [...prev];
-        if (updated.length > 0) {
-          updated[updated.length - 1] = { 
-            role: 'model', 
-            text: isTransient 
-              ? (language === 'BM' ? "Sistem AI sangat sibuk buat masa ini. Sila cuba lagi sebentar." : "The AI service is very busy right now. Please try again in a few moments.")
-              : (message.includes('not found') ? "API Key error. This level requires a personal API key from a paid GCP project." : "Technical error processing that message. Please try again."), 
-            timestamp: new Date(), 
-            error: true 
-          };
-        }
-        return updated;
-      });
-      addToast("AI Service Interrupted.", 'error');
-    } finally {
-      setIsLoading(false);
-    }
+      console.error(error);
+      setMessages(prev => { const u = [...prev]; if (u.length > 0) u[u.length-1] = { role: 'model', text: "Technical error. Please try again.", timestamp: new Date(), error: true }; return u; });
+    } finally { setIsLoading(false); }
   };
 
   const handleSendMessage = async (text: string, mode: ChatMode, attachment?: FileAttachment, manualImage?: string) => {
     const userMessage: Message = { role: 'user', text, timestamp: new Date(), attachment };
     let updatedHistory: Message[] = [];
-    
-    setMessages(prev => {
-        updatedHistory = [...prev, userMessage];
-        return updatedHistory;
-    });
-
-    if (level === UserLevel.OPENAI) {
-      executeSolve(text, 'learning', attachment, manualImage, updatedHistory);
-    } else if (!chatMode) {
+    setMessages(prev => { updatedHistory = [...prev, userMessage]; return updatedHistory; });
+    if (level === UserLevel.OPENAI) executeSolve(text, 'learning', attachment, manualImage, updatedHistory);
+    else if (!chatMode) {
       const normalizedText = text.trim().toLowerCase();
-      const modeKeywords: Record<string, ChatMode> = { 
-        'fast': 'fast', 'fast answer': 'fast',
-        'exam': 'exam', 'exam mode': 'exam',
-        'learning': 'learning', 'learning mode': 'learning'
-      };
-
+      const modeKeywords: Record<string, ChatMode> = { 'fast': 'fast', 'exam': 'exam', 'learning': 'learning' };
       if (modeKeywords[normalizedText]) {
         const selectedMode = modeKeywords[normalizedText];
         setChatMode(selectedMode);
-        if (pendingProblem) {
-          executeSolve(pendingProblem.text, selectedMode, pendingProblem.attachment, undefined, updatedHistory);
-          setPendingProblem(null);
-        } else {
-          setMessages(m => [...m, { 
-            role: 'model', 
-            text: `Mode set to **${selectedMode.toUpperCase()}**. I'm ready for your next math challenge!`, 
-            timestamp: new Date() 
-          }]);
-        }
+        if (pendingProblem) { executeSolve(pendingProblem.text, selectedMode, pendingProblem.attachment, undefined, updatedHistory); setPendingProblem(null); }
+        else setMessages(m => [...m, { role: 'model', text: `Mode set to **${selectedMode.toUpperCase()}**.`, timestamp: new Date() }]);
       } else {
         setPendingProblem({ text, attachment });
-        const promptText = language === 'BM' 
-          ? "Sila pilih mod bimbingan untuk sesi ini sebelum kita teruskan:\n\n1. **Learning**: Bimbingan langkah demi langkah\n2. **Exam**: Persediaan peperiksaan & tips\n3. **Fast Answer**: Jawapan matematik terus\n\nBalas dengan \"**Fast**\", \"**Exam**\", atau \"**Learning**\"."
-          : "Please choose a tutoring mode for this session before we continue:\n\n1. **Learning**: Step-by-step guidance\n2. **Exam**: Formal derivation & tips\n3. **Fast Answer**: Raw math only\n\nReply with \"**Fast**\", \"**Exam**\", or \"**Learning**\"." ;
-
-        setMessages(m => [...m, {
-          role: 'model',
-          text: promptText,
-          timestamp: new Date()
-        }]);
+        setMessages(m => [...m, { role: 'model', text: "Choose mode: **Learning**, **Exam**, or **Fast**.", timestamp: new Date() }]);
       }
-    } else {
-      executeSolve(text, chatMode, attachment, manualImage, updatedHistory);
-    }
+    } else executeSolve(text, chatMode, attachment, manualImage, updatedHistory);
   };
 
-  const handleNavigate = (v: 'home' | 'app' | 'settings' | 'quicknotes', tab?: 'account' | 'preferences') => {
-    setView(v);
-    if (tab) setSettingsTab(tab);
-  };
+  const handleNavigate = (v: 'home' | 'app' | 'settings' | 'quicknotes', tab?: 'account' | 'preferences') => { setView(v); if (tab) setSettingsTab(tab); };
 
-  const handleUpdateUser = (updates: Partial<User>) => {
-    if (user) {
-      setUser({ ...user, ...updates });
-    } else {
-       setUser({ name: 'Guest Scholar', email: 'guest@example.com', pfp: 'https://api.dicebear.com/7.x/fun-emoji/svg?seed=guest', ...updates });
+  const handleUpdateUser = async (updates: Partial<User>) => {
+    if (user?.uid) {
+      try { await updateDoc(doc(db, "users", user.uid), updates); setUser({ ...user, ...updates }); } catch(e){}
     }
   };
 
   const onDeleteData = () => {
     setMessages([]);
     setActiveFocusAreas([]);
-    setUser(null);
     setChatMode('learning');
-    setHasSubmittedFeedback(false);
-    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+    localStorage.clear();
     setView('home');
     addToast("All session data cleared.", "success");
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setMessages([]);
-    setActiveFocusAreas([]);
-    setChatMode('learning');
-    localStorage.removeItem(STORAGE_KEYS.USER_SESSION);
-    setView('home');
-    addToast("Logged out successfully.", "success");
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setUser(null);
+      setMessages([]);
+      setView('home');
+      addToast("Logged out.", "success");
+    } catch(e){}
   };
 
   const handleSubmitFeedback = async (text: string, rating: number) => {
-    if (!user || hasSubmittedFeedback) return;
-
+    if (!user) return;
     if (window.firebaseDatabase) {
       try {
         const feedbackRef = window.firebaseDatabase.ref('liveFeedback');
-        const newMessageRef = feedbackRef.push();
-        await newMessageRef.set({
-          userName: user.name,
-          message: text,
-          rating: rating,
-          timestamp: Date.now(),
-          avatarSeed: user.name.toLowerCase()
-        });
-        
+        await feedbackRef.push().set({ userName: user.name, message: text, rating, timestamp: Date.now(), avatarSeed: user.name.toLowerCase() });
         setHasSubmittedFeedback(true);
         localStorage.setItem(STORAGE_KEYS.HAS_SUBMITTED_FEEDBACK, 'true');
-        addToast("Feedback shared with the community!", "success");
-
+        addToast("Feedback shared!", "success");
         setView('home');
-        setTimeout(() => {
-          const section = document.getElementById('wall-of-love');
-          if (section) {
-            section.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 300);
-
-      } catch (err) {
-        console.error("Firebase Sync Error:", err);
-        addToast("Local submission successful, but network sync failed.", "info");
-      }
+      } catch (err) { console.error(err); }
     }
   };
 
   return (
     <div className="w-full h-screen flex flex-col bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 transition-colors duration-300 relative overflow-hidden">
-      <NavigationDrawer 
-        isOpen={isDrawerOpen} 
-        onClose={() => setIsDrawerOpen(false)} 
-        onNavigate={handleNavigate} 
-        onOpenFeedback={() => setIsFeedbackModalOpen(true)}
-        onOpenGuide={() => setIsGuideOpen(true)}
-        currentView={view} 
-      />
-      
+      <NavigationDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} onNavigate={handleNavigate} onOpenFeedback={() => setIsFeedbackModalOpen(true)} onOpenGuide={() => setIsGuideOpen(true)} currentView={view} />
       <Toast toasts={toasts} removeToast={removeToast} />
-
-      {isAuthModalOpen && (
-        <AuthScreen onBack={() => setIsAuthModalOpen(false)} onLogin={(u) => { setUser(u); setIsAuthModalOpen(false); }} />
-      )}
-
-      <FeedbackModal 
-        isOpen={isFeedbackModalOpen} 
-        onClose={() => setIsFeedbackModalOpen(false)} 
-        onSubmit={handleSubmitFeedback} 
-        user={user}
-        onSignIn={() => { setIsFeedbackModalOpen(false); setIsAuthModalOpen(true); }}
-        hasAlreadySubmitted={hasSubmittedFeedback}
-      />
-
-      <UserGuide 
-        isOpen={isGuideOpen} 
-        onClose={handleCloseGuide} 
-        level={level} 
-        language={language} 
-      />
-
-      <LiveVoiceOverlay 
-        isOpen={isVoiceOpen} 
-        onClose={() => setIsVoiceOpen(false)} 
-        level={level} 
-        language={language} 
-      />
+      {isAuthModalOpen && <AuthScreen onBack={() => setIsAuthModalOpen(false)} onLogin={(u) => { setUser(u); setIsAuthModalOpen(false); }} />}
+      <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} onSubmit={handleSubmitFeedback} user={user} onSignIn={() => { setIsFeedbackModalOpen(false); setIsAuthModalOpen(true); }} hasAlreadySubmitted={hasSubmittedFeedback} />
+      <UserGuide isOpen={isGuideOpen} onClose={handleCloseGuide} level={level} language={language} />
+      <LiveVoiceOverlay isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} level={level} language={language} />
 
       {view === 'home' ? (
         <div className="w-full h-full overflow-y-auto">
@@ -710,92 +485,21 @@ const App: React.FC = () => {
         </div>
       ) : (
         <div className="flex flex-col w-full h-full overflow-hidden">
-          <Header 
-            level={level} 
-            subLevel={subLevel} 
-            setLevel={handleLevelChange} 
-            isDarkMode={isDarkMode} 
-            toggleTheme={() => setIsDarkMode(!isDarkMode)} 
-            onOpenMenu={() => setIsDrawerOpen(true)} 
-            onLogin={() => setIsAuthModalOpen(true)} 
-            onLogout={handleLogout} 
-            user={user} 
-            onNavigate={handleNavigate}
-            language={language}
-            setLanguage={setLanguage}
-            showLevels={view !== 'quicknotes'}
-          />
-
-          {!isOnline && (
-            <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-1 px-4 flex items-center justify-center gap-2">
-              <WifiOff size={12} /> Offline Mode - Some features restricted
-            </div>
-          )}
-          
+          <Header level={level} subLevel={subLevel} setLevel={handleLevelChange} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} onOpenMenu={() => setIsDrawerOpen(true)} onLogin={() => setIsAuthModalOpen(true)} onLogout={handleLogout} user={user} onNavigate={handleNavigate} language={language} setLanguage={setLanguage} showLevels={view !== 'quicknotes'} />
+          {!isOnline && <div className="bg-red-500 text-white text-[10px] font-black uppercase tracking-[0.2em] py-1 px-4 flex items-center justify-center gap-2"><WifiOff size={12} /> Offline Mode</div>}
           <div className="flex-1 overflow-hidden">
-            {view === 'settings' ? (
-              <SettingsView 
-                user={user} 
-                activeTab={settingsTab} 
-                setTab={setSettingsTab} 
-                onBack={() => setView('app')} 
-                isDarkMode={isDarkMode} 
-                toggleTheme={() => setIsDarkMode(!isDarkMode)} 
-                level={level} 
-                subLevel={subLevel} 
-                socraticEnabled={socraticEnabled} 
-                setSocraticEnabled={setSocraticEnabled}
-                reasoningMode={reasoningMode}
-                setReasoningMode={setReasoningMode}
-                onUpdateUser={handleUpdateUser}
-                onDeleteData={onDeleteData}
-              />
-            ) : view === 'quicknotes' ? (
-              <QuickNotesView language={language} onBack={() => setView('app')} />
-            ) : (
+            {view === 'settings' ? <SettingsView user={user} activeTab={settingsTab} setTab={setSettingsTab} onBack={() => setView('app')} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} level={level} subLevel={subLevel} socraticEnabled={socraticEnabled} setSocraticEnabled={setSocraticEnabled} reasoningMode={reasoningMode} setReasoningMode={setReasoningMode} onUpdateUser={handleUpdateUser} onDeleteData={onDeleteData} /> : view === 'quicknotes' ? <QuickNotesView language={language} onBack={() => setView('app')} /> : (
               <main className="max-w-full mx-auto w-full h-full p-0 md:p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-0 md:gap-6 overflow-hidden">
                 {level !== UserLevel.OPENAI && (
-                  <div className={`hidden lg:flex flex-col gap-6 transition-all duration-500 ease-in-out h-full overflow-hidden ${isFocusMinimized ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
+                  <div className={`hidden lg:flex flex-col gap-6 transition-all h-full overflow-hidden ${isFocusMinimized ? 'lg:col-span-1' : 'lg:col-span-2'}`}>
                     <div className="bg-white dark:bg-[#0f172a] rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 flex flex-col h-full overflow-hidden">
-                      <div className="flex items-center justify-between mb-6 w-full shrink-0">
-                        {!isFocusMinimized && <h2 className="text-xs font-black flex items-center gap-2 tracking-[0.1em] text-slate-800 dark:text-slate-200 uppercase whitespace-nowrap"><Sparkles size={16} className="text-indigo-600" /> Focus Areas</h2>}
-                        <button onClick={() => { setIsFocusMinimized(!isFocusMinimized); }} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400">
-                          {isFocusMinimized ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-                        </button>
-                      </div>
-                      {!isFocusMinimized && (
-                        <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar">
-                          {currentFocusOptions.map((area) => (
-                            <div key={area.label} onClick={() => toggleFocusArea(area.label)} className="group cursor-pointer">
-                              <div className="flex items-center justify-between mb-1.5">
-                                 <span className={`text-[12px] font-bold ${activeFocusAreas.includes(area.label) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-slate-200'} transition-colors`}>{area.label}</span>
-                                 <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${activeFocusAreas.includes(area.label) ? area.color : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'}`}>{activeFocusAreas.includes(area.label) ? (language === 'BM' ? 'Aktif' : 'ACTIVE') : (language === 'BM' ? 'Sedia' : 'READY')}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <div className="flex items-center justify-between mb-6 w-full shrink-0">{!isFocusMinimized && <h2 className="text-xs font-black flex items-center gap-2 tracking-[0.1em] text-slate-800 dark:text-slate-200 uppercase whitespace-nowrap"><Sparkles size={16} className="text-indigo-600" /> Focus</h2>}<button onClick={() => setIsFocusMinimized(!isFocusMinimized)} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400">{isFocusMinimized ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}</button></div>
+                      {!isFocusMinimized && <div className="space-y-4 flex-1 overflow-y-auto pr-1 custom-scrollbar">{currentFocusOptions.map((area) => (<div key={area.label} onClick={() => toggleFocusArea(area.label)} className="group cursor-pointer"><div className="flex items-center justify-between mb-1.5"><span className={`text-[12px] font-bold ${activeFocusAreas.includes(area.label) ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 group-hover:text-slate-900'} transition-colors`}>{area.label}</span><span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md ${activeFocusAreas.includes(area.label) ? area.color : 'bg-slate-100 dark:bg-slate-800 dark:text-slate-500'}`}>{activeFocusAreas.includes(area.label) ? 'ACTIVE' : 'READY'}</span></div></div>))}</div>}
                     </div>
                   </div>
                 )}
-
-                <div className={`flex flex-col h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:col-span-12' : (isFocusMinimized ? 'lg:col-span-8' : 'lg:col-span-7')}`}>
-                  <ChatInterface 
-                    messages={messages} 
-                    onSendMessage={handleSendMessage} 
-                    isLoading={isLoading} 
-                    level={level} 
-                    activeMode={chatMode} 
-                    setActiveMode={setChatMode} 
-                    onError={addToast} 
-                    language={language}
-                    onOpenVoice={() => setIsVoiceOpen(true)}
-                  />
-                </div>
-
-                <div className={`hidden lg:block h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:hidden' : 'lg:col-span-3'}`}>
-                    <ToolsPanel level={level} subLevel={subLevel} setLevel={handleLevelChange} activeFocusAreas={activeFocusAreas} toggleFocusArea={toggleFocusArea} focusOptions={currentFocusOptions} language={language} />
-                </div>
+                <div className={`flex flex-col h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:col-span-12' : (isFocusMinimized ? 'lg:col-span-8' : 'lg:col-span-7')}`}><ChatInterface messages={messages} onSendMessage={handleSendMessage} isLoading={isLoading} level={level} activeMode={chatMode} setActiveMode={setChatMode} onError={addToast} language={language} onOpenVoice={() => setIsVoiceOpen(true)} /></div>
+                <div className={`hidden lg:block h-full overflow-hidden ${level === UserLevel.OPENAI ? 'lg:hidden' : 'lg:col-span-3'}`}><ToolsPanel level={level} subLevel={subLevel} setLevel={handleLevelChange} activeFocusAreas={activeFocusAreas} toggleFocusArea={toggleFocusArea} focusOptions={currentFocusOptions} language={language} /></div>
               </main>
             )}
           </div>
