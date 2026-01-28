@@ -8,101 +8,81 @@ const RESPONSIVE_DIRECTIVE = `
 ### RESPONSIVENESS & FAILSAFE:
 - ALWAYS produce a response. NEVER remain silent.
 - Prioritize immediate streaming.
+- Be Open-minded: Always attempt to answer, even for unconventional, creative, or applied math questions. Make reasonable assumptions if needed.
 `;
 
 const LATEX_FORMATTING_GUIDE = `
 ### LATEX FORMATTING GUIDE (STRICT):
-1. MATRICES: Always use \\begin{pmatrix} ... \\end{pmatrix}. Use & as column separator and \\\\ as row separator.
-2. FRACTIONS: Always use \\frac{numerator}{denominator} for complex fractions.
-3. ALIGNMENT: For multi-step derivations, use \\begin{aligned} ... \\end{aligned} with & for alignment points.
-4. SYMBOLS: Use proper LaTeX symbols: \\times (not *), \\div (not /), \\pm, \\sqrt{}, \\int, \\sum.
+1. MATRICES: Always use \\begin{pmatrix} ... \\end{pmatrix}.
+2. FRACTIONS: Always use \\frac{numerator}{denominator}.
+3. ALIGNMENT: For derivations, use \\begin{aligned} ... \\end{aligned}.
+4. SYMBOLS: Use proper LaTeX symbols: \\times, \\div, \\pm, \\sqrt{}, \\int, \\sum.
 5. DELIMITERS: Use $...$ for inline math and $$...$$ for block math.
 `;
 
 const VISUAL_LEARNING_PROTOCOL = `
 ### VISUAL LEARNING PROTOCOL:
-If the problem involves spatial reasoning, geometry, functions, locus, or graphs, OR if the user explicitly asks for a diagram/graph, you MUST include a request for an illustration.
-- Use the tag [ILLUSTRATE: detailed description] at the end of your response.
-- Example: [ILLUSTRATE: A circle with a chord AB and a perpendicular bisector from the center O.]
-- Key Topics for Visuals: Locus, Circles (Angles, Chords, Tangents), Coordinate Geometry, Graphs of Functions, Vectors, and 3D Geometry.
-- Describe the visual clearly so the diagram generator can produce a high-quality educational graphic.
+If the problem involves spatial reasoning, geometry, or graphs, include [ILLUSTRATE: description].
 `;
 
 const MATH_WORKING_RULES = `
 ### MATH WORKING RULES (CRITICAL):
-1. SHOW WORKING clearly and step-by-step.
-2. EACH mathematical move MUST be on a NEW LINE.
-3. Use simple mathematical notation in LaTeX ($...$ or $$...$$).
-4. Do NOT combine multiple steps into one line.
-5. The FINAL ANSWER must be on its own line and clearly labeled.
+1. CLARITY FIRST: Be logical, patient, and flexible.
+2. CONCISE BY DEFAULT: Provide short, clear answers first. Only provide full step-by-step workings if the current Mode (Learning/Exam) specifically demands it.
+3. EACH mathematical move MUST be on a NEW LINE when showing work.
 ${LATEX_FORMATTING_GUIDE}
 ${VISUAL_LEARNING_PROTOCOL}
 ${RESPONSIVE_DIRECTIVE}
 `;
 
 const MMU_CURRICULUM_CONTEXT = `
-### MMU ESSENTIAL MATHEMATICS CURRICULUM:
-You are specifically trained on the Multimedia University (MMU) Essential Mathematics syllabus:
-- CH1: Fundamentals of Algebra (Real Numbers, Polynomials, Rational Expressions, Exponents, Radicals, Equations, Inequalities, Absolute Values)
-- CH2: Functions and Graphs (Operations on functions, Linear & Quadratic, Coordinate Geometry, Lines)
-- CH3: Matrices (Operations, Identity, Transpose, Determinant, Inverse, Systems of Equations)
-- CH4: Sequence and Series (Arithmetic and Geometric)
-- CH5: Derivative (Rules, Power rule, Chain rule, Higher-order derivatives)
-- CH6: Integration (Indefinite, Formulas, U-substitution, Definite)
+### MMU CURRICULUM:
+CH1: Algebra, CH2: Functions, CH3: Matrices, CH4: Series, CH5: Derivatives, CH6: Integration.
 `;
 
 const KSSM_ADDMATH_CONTEXT = `
-### KSSM ADDITIONAL MATHEMATICS CONTEXT (SPM):
-You are an expert Additional Mathematics teacher for Form 4 & 5 (Malaysia KSSM).
-Your goal is to prepare students for SPM level rigor by focusing on formal derivation, precision, and Malaysian examination style.
-Chapters covered include Functions, Quadratic Functions, Systems of Linear Equations, Indices/Surds/Logarithms, Progressions, Linear Law, Coordinate Geometry, Vectors, Trigonometry, Calculus, Permutations/Combinations, Probability Distributions, and Kinematics.
-- Correct mistakes by explaining "why" before showing the "how".
-- Use terminology consistent with the Malaysian KSSM syllabus.
+### KSSM ADDMATH (MALAYSIA):
+Expert in Form 4 & 5 syllabus. Use KSSM terminology.
 `;
 
 const SYSTEM_PROMPT_CORE = `
-### MATHMENTOR AI DIRECTIVE
-You are a professional, friendly human-like math tutor. Your goal is to ensure the user gets a correct answer they can actually understand.
+### ADVANCED MATH AI TUTOR DIRECTIVE
+You are an advanced Math AI tutor. Your task is to answer any math-related question a user asks, regardless of difficulty or style.
 
-### PERSISTENCE & CONTEXT RULES:
-- Address the student by their name if provided.
-- Maintain context across messages.
+### CORE PRINCIPLES:
+1. **Open-minded**: Answer unconventional or creative math questions.
+2. **Concise**: Short answers by default. Only expand if the Mode requires it.
+3. **Adaptable**: Adjust style to [USER_LEVEL].
+4. **Formatting**: Use LaTeX ($...$ or $$...$$) strictly.
+5. **Clarity First**: Logical and patient explanations.
 
 ### CONSTRAINTS:
 - Language: [LANGUAGE_TOKEN]. 
-- Math: ALWAYS use LaTeX ($...$ or $$...$$) for formulas.
-- Currency: ALWAYS escape literal dollar signs (e.g., \\$60).
+- Math: ALWAYS use LaTeX for formulas.
+- Currency: Escape literal dollar signs (\\$60).
 ${MATH_WORKING_RULES}
 `;
 
 const ADVANCED_PROMPT_ADDON = `
-### ADVANCED MATH RIGOR (UNIVERSITY LEVEL):
-1. Provide formal definitions when introducing new concepts.
-2. If the user asks for a proof, provide a logically rigorous derivation.
-3. Use professional academic terminology.
+### UNIVERSITY LEVEL RIGOR:
+Provide formal definitions and rigorous proofs when requested.
 ${MMU_CURRICULUM_CONTEXT}
 `;
 
 const MODE_INSTRUCTIONS: Record<ChatMode, string> = {
-  learning: `MODE: LEARNING. 
-1. ### 💡 THE BIG IDEA: One simple sentence explanation.
-2. ### 🛠️ THE STEP-BY-STEP: Full working, one move per line.
-3. ### 🧠 THE ANALOGY: A simple comparison.
-4. ### ✅ QUICK CHECK: One question for the student.`,
+  learning: `MODE: LEARNING (Socratic & Detailed). 
+1. ### 💡 THE BIG IDEA: Brief summary.
+2. ### 🛠️ THE STEP-BY-STEP: Detailed derivation, one move per line.
+3. ### 🧠 THE ANALOGY: Simple comparison.
+4. ### ✅ QUICK CHECK: One question for student engagement.`,
 
-  exam: `MODE: EXAM. 
-- Focus on formal derivation and precision.
+  exam: `MODE: EXAM (Formal & Precise). 
+- Focus on formal steps and marking criteria.
 - Include "Marking Tips" or pitfall warnings.`,
 
-  fast: `MODE: FAST ANSWER.
-STRICT: Output ONLY LaTeX math steps ($$ ... $$) and the final answer. No words.`
+  fast: `MODE: FAST ANSWER (Brief & Direct).
+STRICT: Output ONLY the final answer in LaTeX ($$ ... $$). No extra words.`
 };
-
-export interface MathResponse {
-  text: string;
-  citations: Citation[];
-  isError?: boolean;
-}
 
 const handleApiError = (error: any, language: Language): string => {
   console.error("Gemini API Error:", error);
@@ -140,12 +120,9 @@ export const solveMathProblemStream = async (
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // OpenAI level uses Pro. Advanced (Essential Math) uses Flash for stability & speed.
     const isPro = level === UserLevel.OPENAI;
     const modelName = isPro ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
-    // Thinking Config is only for Gemini 3 series. 
-    // We use it for Pro model (OpenAI level)
     let thinkingBudget = 0;
     if (isPro && reasoningMode === 'deep') {
       thinkingBudget = 4000;
@@ -159,7 +136,6 @@ export const solveMathProblemStream = async (
     const currentParts: any[] = [{ text: `
 [CONTEXT]
 Level: ${level}
-Curriculum: ${subLevel || 'N/A'}
 Topic: ${focusAreas?.join(', ') || 'General Math'}
 
 [USER QUERY]
@@ -169,7 +145,10 @@ ${problem}
     if (attachment) currentParts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
     contents.push({ role: 'user', parts: currentParts });
 
-    let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
+    let systemInstruction = SYSTEM_PROMPT_CORE
+      .replace(/\[LANGUAGE_TOKEN\]/g, language)
+      .replace(/\[USER_LEVEL\]/g, level);
+
     if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) {
       systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
     }
@@ -239,7 +218,10 @@ export const solveMathProblem = async (
     if (attachment) currentParts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
     contents.push({ role: 'user', parts: currentParts });
 
-    let systemInstruction = SYSTEM_PROMPT_CORE.replace(/\[LANGUAGE_TOKEN\]/g, language);
+    let systemInstruction = SYSTEM_PROMPT_CORE
+      .replace(/\[LANGUAGE_TOKEN\]/g, language)
+      .replace(/\[USER_LEVEL\]/g, level);
+      
     if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) {
       systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
     }
@@ -282,8 +264,7 @@ export const generateIllustration = async (prompt: string, size: ImageSize = '1K
   const ai = new GoogleGenAI({ apiKey: key });
   const model = 'gemini-2.5-flash-image';
   
-  // Refined prompt for mathematical diagram consistency
-  const refinedPrompt = `A clean, minimalist mathematical educational diagram for teaching. Style: 2D black and white vector-like line art on white background. Content: ${prompt}. Focus on clarity, accuracy of geometric shapes, and legible math labels. No shading, no photorealism. Suitable for textbook graphics.`;
+  const refinedPrompt = `Math diagram: ${prompt}. Style: 2D B&W line art, white bg, precise geometry, textbook labels. No photorealism.`;
 
   const res = await ai.models.generateContent({
     model,
@@ -302,22 +283,7 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
 
   let languageDirective = "";
   if (language === 'BM') {
-    languageDirective = `
-### MALAYSIAN KSSM TRANSLATION PROTOCOL (STRICT):
-1. LANGUAGE: Use formal, clear, textbook-style Bahasa Melayu suitable for KSSM students.
-2. MATHEMATICS PRESERVATION: DO NOT change numbers, symbols, matrices, variables, or LaTeX formatting.
-3. TERMINOLOGY (KSSM STANDARD):
-- Matrix -> Matriks
-- Given matrices -> Diberi matriks
-- Determine -> Tentukan
-- Product -> Hasil darab
-- Value -> Nilai
-- Find -> Cari
-- Hence -> Oleh itu
-- If -> Jika
-- Options -> Pilihan jawapan
-4. FORMATTING: Preserve question numbering, multiple-choice labels (A, B, C, D), and LaTeX layout.
-`;
+    languageDirective = `### MALAYSIAN KSSM TRANSLATION PROTOCOL (STRICT): formal clear textbook Bahasa Melayu.`;
   }
 
   const res = await ai.models.generateContent({
@@ -326,9 +292,7 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
     config: {
       systemInstruction: `Generate a detailed math quiz in ${language} for ${level} level students. 
       Topic: ${topic}. 
-      Ensure each question includes a thorough explanation with clear LaTeX formatting for all equations, matrices, and fractions.
-      Provide a "pitfalls" field describing common mistakes students make for this specific problem.
-      Provide an "alternatives" field explaining other mathematical ways to reach the same answer.
+      Ensure each question includes a thorough explanation with clear LaTeX formatting.
       Format the output as JSON according to the schema.
       ${languageDirective}
       ${LATEX_FORMATTING_GUIDE}`,
@@ -345,9 +309,9 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
                 question: { type: Type.STRING },
                 options: { type: Type.ARRAY, items: { type: Type.STRING } },
                 correctAnswerIndex: { type: Type.INTEGER },
-                explanation: { type: Type.STRING, description: "Detailed step-by-step reasoning for the correct answer." },
-                pitfalls: { type: Type.STRING, description: "Common misconceptions or errors related to this question type." },
-                alternatives: { type: Type.STRING, description: "Alternative valid methods to solve this question." }
+                explanation: { type: Type.STRING },
+                pitfalls: { type: Type.STRING },
+                alternatives: { type: Type.STRING }
               },
               required: ["question", "options", "correctAnswerIndex", "explanation", "pitfalls", "alternatives"]
             }
@@ -359,3 +323,9 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
   });
   return JSON.parse(res.text || "{}");
 };
+
+export interface MathResponse {
+  text: string;
+  citations: Citation[];
+  isError?: boolean;
+}

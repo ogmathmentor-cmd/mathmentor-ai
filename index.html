@@ -71,15 +71,14 @@
         --bg-primary: #020617; /* slate-950 */
       }
 
-      /* 2. Force HTML and Body to fill browser window */
+      /* 2. Fixed App Layout */
       html, body {
         width: 100%;
         height: 100%;
         font-family: 'Inter', sans-serif;
         background-color: var(--bg-primary);
         transition: background-color 0.4s ease;
-        /* Prevent elastic bounce on mobile and unexpected horizontal drift */
-        overflow: hidden;
+        overflow: hidden; /* Prevent body-level scrolling */
       }
 
       /* KaTeX Enhancement */
@@ -105,7 +104,7 @@
         color: #f1f5f9;
       }
 
-      /* Allow scrolling only within our React root if designated */
+      /* Root container fixed to viewport */
       #root {
         width: 100%;
         height: 100%;
@@ -113,7 +112,6 @@
         flex-direction: column;
       }
       
-      /* pb-safe/pt-safe handles notches on modern devices */
       .pb-safe {
         padding-bottom: env(safe-area-inset-bottom);
       }
@@ -128,7 +126,8 @@
       }
 
       .custom-scrollbar::-webkit-scrollbar {
-        width: 4px;
+        width: 6px;
+        height: 6px;
       }
       .custom-scrollbar::-webkit-scrollbar-track {
         background: transparent;
@@ -160,9 +159,6 @@
         .prose {
           font-size: 14px !important;
           line-height: 1.6;
-        }
-        button, a, input, select, textarea {
-          min-height: 44px;
         }
       }
     </style>

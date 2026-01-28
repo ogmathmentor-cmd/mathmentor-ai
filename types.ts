@@ -28,6 +28,7 @@ export interface Message {
   timestamp: Date;
   attachment?: FileAttachment;
   image?: string; // base64 data url for generated images
+  isGeneratingImage?: boolean;
   citations?: Citation[];
   error?: boolean;
 }
