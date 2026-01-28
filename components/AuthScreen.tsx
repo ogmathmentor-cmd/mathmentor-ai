@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Mail, Lock, User, ArrowLeft, ArrowRight, GraduationCap, X, Eye, EyeOff, ShieldCheck, ShieldAlert, Loader2, CheckSquare, Square, Smartphone, Chrome, Hash, AlertTriangle, ExternalLink } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { 
@@ -38,39 +38,35 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
+  const recaptchaRef = useRef<HTMLDivElement>(null);
+
   // Initialize Recaptcha for Phone Auth
   useEffect(() => {
-    const initRecaptcha = () => {
-      if ((authMode === 'phone' || authMode === 'verify-code') && !window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible',
-            'callback': () => {},
-            'expired-callback': () => {
-              setError("reCAPTCHA expired. Please try again.");
-            }
-          });
-        } catch (err: any) {
-          console.error("Recaptcha Init Error:", err);
-        }
+    if ((authMode === 'phone' || authMode === 'verify-code') && !window.recaptchaVerifier) {
+      try {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          'size': 'invisible',
+          'callback': () => {},
+          'expired-callback': () => {
+            setError("reCAPTCHA expired. Please try again.");
+          }
+        });
+      } catch (err: any) {
+        console.error("Recaptcha Init Error:", err);
       }
-    };
-
-    initRecaptcha();
+    }
 
     return () => {
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-          window.recaptchaVerifier = null;
-        } catch(e) {}
-      }
+      // Don't clear immediately on every mode change to allow verification to finish
     };
   }, [authMode]);
 
   const parseFirebaseError = (err: any) => {
     const code = err.code || "";
-    if (code === 'auth/unauthorized-domain') {
+    const message = err.message || "";
+    
+    // Handle the specific -39 error from the screenshot
+    if (code === 'auth/unauthorized-domain' || message.includes('unauthorized-domain')) {
       return (
         <div className="space-y-2 text-left">
           <div className="font-bold flex items-center gap-2">
@@ -87,17 +83,29 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
           <code className="block bg-black/30 p-1.5 rounded text-[10px] font-mono break-all select-all">
             {window.location.hostname}
           </code>
-          <a 
-            href="https://console.firebase.google.com/" 
-            target="_blank" 
-            className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 underline font-bold"
-          >
-            Open Console <ExternalLink size={10} />
-          </a>
         </div>
       );
     }
-    return err.message.replace("Firebase: ", "");
+
+    if (message.includes('-39') || code.includes('error-code:-39')) {
+      return (
+        <div className="space-y-2 text-left">
+          <div className="font-bold flex items-center gap-2">
+             <ShieldAlert size={14} /> SMS Setup Error
+          </div>
+          <p className="text-[10px] leading-tight opacity-90">
+            Firebase could not start the reCAPTCHA verification. Please ensure:
+          </p>
+          <ul className="text-[9px] list-disc list-inside opacity-80 space-y-1">
+            <li>Phone Auth is <b>ENABLED</b> in Firebase Console.</li>
+            <li>Wait 5 mins if you just added the domain.</li>
+            <li>Try disabling ad-blockers for this site.</li>
+          </ul>
+        </div>
+      );
+    }
+    
+    return `Error (${code || 'Unknown'}). ${message.replace("Firebase: ", "")}`;
   };
 
   const passwordStrength = useMemo(() => {
@@ -176,18 +184,26 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
     setError(null);
     setIsSubmitting(true);
     try {
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
+      // Re-init if needed to avoid -39 stale container errors
+      if (window.recaptchaVerifier) {
+        try { window.recaptchaVerifier.clear(); } catch(e) {}
+        window.recaptchaVerifier = null;
       }
+      
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 
+        'size': 'invisible' 
+      });
+
       const appVerifier = window.recaptchaVerifier;
       const result = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
       setConfirmationResult(result);
       setAuthMode('verify-code');
       setSuccessMsg("SMS code sent to your phone.");
     } catch (err: any) {
+      console.error("SMS Send Error:", err);
       setError(parseFirebaseError(err));
       if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
+        try { window.recaptchaVerifier.clear(); } catch(e) {}
         window.recaptchaVerifier = null;
       }
     } finally {
@@ -261,7 +277,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-slate-900/60 dark:bg-black/70 backdrop-blur-sm animate-in fade-in duration-300" onClick={onBack} />
-      <div id="recaptcha-container"></div>
+      
+      {/* Hidden container for reCAPTCHA - must always be in DOM for Phone Auth */}
+      <div id="recaptcha-container" ref={recaptchaRef} className="hidden"></div>
       
       <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 slide-in-from-bottom-4 duration-500 relative">
         <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-8 max-h-[90vh] overflow-y-auto custom-scrollbar">
@@ -280,8 +298,8 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-500/10 dark:bg-red-950/40 border border-red-500/40 rounded-2xl flex items-start gap-3 text-red-600 dark:text-red-400 text-xs font-bold animate-in shake duration-300">
-              <ShieldAlert size={18} className="flex-shrink-0 mt-0.5" />
+            <div className="mb-6 p-4 bg-red-950/40 border border-red-500/40 rounded-2xl flex items-start gap-3 text-red-400 text-xs font-bold animate-in shake duration-300">
+              <ShieldAlert size={18} className="flex-shrink-0 mt-0.5 text-red-500" />
               <div className="flex-1">{error}</div>
             </div>
           )}
