@@ -1,3 +1,4 @@
+
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -16,9 +17,9 @@ import LiveVoiceOverlay from './components/LiveVoiceOverlay';
 import Toast from './components/Toast';
 import { solveMathProblemStream, generateIllustration } from './services/geminiService';
 import { auth, db } from './firebase';
-import { onAuthStateChanged, signOut, getRedirectResult } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
-import { Sparkles, ChevronLeft, ChevronRight, WifiOff, Loader2 } from 'lucide-react';
+import { Sparkles, ChevronLeft, ChevronRight, WifiOff } from 'lucide-react';
 
 interface FocusArea {
   label: string;
@@ -215,7 +216,6 @@ const App: React.FC = () => {
   const [toasts, setToasts] = useState<ToastType[]>([]);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>(DEFAULT_FEEDBACKS);
-  const [isAuthenticating, setIsAuthenticating] = useState(true);
   
   const [language, setLanguage] = useState<Language>('EN');
   const [level, setLevel] = useState<UserLevel>(UserLevel.INTERMEDIATE);
@@ -241,70 +241,44 @@ const App: React.FC = () => {
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
-  const syncUserProfile = async (firebaseUser: any, defaultName?: string) => {
-    const docRef = doc(db, "users", firebaseUser.uid);
-    const docSnap = await getDoc(docRef);
-    
-    const displayName = firebaseUser.displayName || defaultName || (firebaseUser.isAnonymous ? 'Guest Student' : firebaseUser.email?.split('@')[0]) || 'Scholar';
-    const pfp = firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.uid}`;
-
-    if (!docSnap.exists()) {
-      await setDoc(docRef, {
-        email: firebaseUser.email || '',
-        name: displayName,
-        level: "Secondary",
-        mode: "learning",
-        onboardingShown: false,
-        zoom: 100,
-        createdAt: new Date(),
-        isAnonymous: firebaseUser.isAnonymous
-      });
-    }
-
-    const userData: User = { uid: firebaseUser.uid, name: displayName, email: firebaseUser.email || 'Private', pfp };
-    setUser(userData);
-    if (docSnap.exists()) {
-      const data = docSnap.data();
-      if (data.level) setLevel(data.level as UserLevel);
-      if (data.mode) setChatMode(data.mode as ChatMode);
-      if (data.language) setLanguage(data.language as Language);
-    }
-    // If the user just logged in via redirect, maybe move them to the app view automatically?
-    // We only do this if they are at the home screen.
-    if (view === 'home' && !isAuthModalOpen) {
-      setView('app');
-    }
-  };
-
-  // Firebase Auth Listener & Redirect Result Handling
+  // Firebase Auth Listener
   useEffect(() => {
-    // 1. Handle Redirect Result (Crucial for Mobile)
-    const handleRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          await syncUserProfile(result.user);
-          addToast(`Welcome back, ${result.user.displayName || 'Scholar'}!`, 'success');
-        }
-      } catch (error: any) {
-        console.error("Redirect Auth Error:", error);
-        if (error.code !== 'auth/popup-closed-by-user') {
-          addToast("Authentication failed. Please try again.", "error");
-        }
-      } finally {
-        setIsAuthenticating(false);
-      }
-    };
-    handleRedirect();
-
-    // 2. Auth State Listener
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        await syncUserProfile(firebaseUser);
+        const userData: User = {
+          uid: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Scholar',
+          email: firebaseUser.email || '',
+          pfp: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${firebaseUser.email}`
+        };
+        setUser(userData);
+        
+        // Load settings from Firestore
+        try {
+          const docRef = doc(db, "users", firebaseUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.level) setLevel(data.level as UserLevel);
+            if (data.mode) setChatMode(data.mode as ChatMode);
+            if (data.language) setLanguage(data.language as Language);
+          } else {
+            // New user via Google Redirect or otherwise: initialize their profile doc
+            await setDoc(docRef, {
+              email: firebaseUser.email || '',
+              name: userData.name,
+              level: "Secondary",
+              mode: "learning",
+              onboardingShown: false,
+              zoom: 100,
+              createdAt: new Date(),
+              isAnonymous: firebaseUser.isAnonymous
+            });
+          }
+        } catch (e) { console.error("Firestore Load/Init Error:", e); }
       } else {
         setUser(null);
       }
-      setIsAuthenticating(false);
     });
     return () => unsubscribe();
   }, []);
@@ -508,20 +482,11 @@ const App: React.FC = () => {
     }
   };
 
-  if (isAuthenticating) {
-    return (
-      <div className="w-full h-screen flex flex-col items-center justify-center bg-white dark:bg-[#020617] text-indigo-600">
-        <Loader2 size={48} className="animate-spin mb-4" />
-        <p className="text-xs font-black uppercase tracking-widest text-slate-500 animate-pulse">Syncing Session...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full h-screen flex flex-col bg-white dark:bg-[#020617] text-slate-900 dark:text-slate-100 transition-colors duration-300 relative overflow-hidden">
       <NavigationDrawer isOpen={isDrawerOpen} onClose={() => setIsDrawerOpen(false)} onNavigate={handleNavigate} onOpenFeedback={() => setIsFeedbackModalOpen(true)} onOpenGuide={() => setIsGuideOpen(true)} currentView={view} />
       <Toast toasts={toasts} removeToast={removeToast} />
-      {isAuthModalOpen && <AuthScreen onBack={() => setIsAuthModalOpen(false)} onLogin={(u) => { setUser(u); setIsAuthModalOpen(false); if(view==='home') setView('app'); }} />}
+      {isAuthModalOpen && <AuthScreen onBack={() => setIsAuthModalOpen(false)} onLogin={(u) => { setUser(u); setIsAuthModalOpen(false); }} />}
       <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} onSubmit={handleSubmitFeedback} user={user} onSignIn={() => { setIsFeedbackModalOpen(false); setIsAuthModalOpen(true); }} hasAlreadySubmitted={hasSubmittedFeedback} />
       <UserGuide isOpen={isGuideOpen} onClose={handleCloseGuide} level={level} language={language} />
       <LiveVoiceOverlay isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} level={level} language={language} />

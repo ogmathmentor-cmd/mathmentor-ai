@@ -106,7 +106,7 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Pr
     const isRetryable = status === 'UNAVAILABLE' || status === 'RESOURCE_EXHAUSTED' || status === 503 || status === 429;
     
     if (retries > 0 && (isRetryable || !status)) {
-      console.warn(`API Overloaded or error encountered. Retrying in ${delay}ms... (${retries} retries left)`);
+      console.warn(`API Overloaded or error encountered. Retrying in ${delay}ms... (${retries} left)`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return withRetry(fn, retries - 1, delay * 2);
     }
@@ -133,11 +133,11 @@ export const solveMathProblemStream = async (
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // Fast = Gemini 3.0 Flash, Deep = Gemini 3.0 Pro (Standard for deep tasks)
-    const modelName = reasoningMode === 'deep' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+    // Fast = Gemini 3.0 Flash, Deep = Gemini 2.5 Pro
+    const modelName = reasoningMode === 'deep' ? 'gemini-2.5-pro' : 'gemini-3-flash-preview';
     
     let thinkingBudget = 0;
-    // Maximum thinking budget for Gemini 3 Pro is 32768 tokens.
+    // Thinking budget for reasoning-capable models like Gemini 2.5 Pro.
     if (reasoningMode === 'deep') {
       thinkingBudget = 16000;
     }
@@ -179,7 +179,7 @@ ${problem}
     const config: any = {
       systemInstruction,
       temperature: mode === 'fast' ? 0.0 : 0.2,
-      maxOutputTokens: 20000, // Balanced for response + thinking
+      maxOutputTokens: 20000,
       tools: (level === UserLevel.OPENAI || reasoningMode === 'deep') ? [{ googleSearch: {} }] : [],
     };
     
@@ -227,8 +227,8 @@ export const solveMathProblem = async (
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    // Fast = Gemini 3.0 Flash, Deep = Gemini 3.0 Pro
-    const modelName = reasoningMode === 'deep' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+    // Fast = Gemini 3.0 Flash, Deep = Gemini 2.5 Pro
+    const modelName = reasoningMode === 'deep' ? 'gemini-2.5-pro' : 'gemini-3-flash-preview';
     
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -300,7 +300,6 @@ export const generateIllustration = async (prompt: string, size: ImageSize = '1K
   if (!key) return null;
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    // Note: Image generation usually stays on the flash image model
     const model = 'gemini-2.5-flash-image';
     
     const refinedPrompt = `Math diagram: ${prompt}. Style: 2D B&W line art, white bg, precise geometry, textbook labels. No photorealism.`;
@@ -334,7 +333,6 @@ export const generateQuiz = async (
   
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    // Updated to Gemini 3.0 Flash
     const model = 'gemini-3-flash-preview';
 
     let languageDirective = "";
