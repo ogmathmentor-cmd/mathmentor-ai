@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { Mail, Lock, User, ArrowRight, GraduationCap, X, Eye, EyeOff, ShieldCheck, ShieldAlert, Loader2, CheckSquare, Square, Chrome, AlertTriangle, ExternalLink } from 'lucide-react';
 import { auth, db } from '../firebase';
 import { 
@@ -7,7 +8,9 @@ import {
   sendPasswordResetEmail,
   updateProfile,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult
 } from "firebase/auth";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 
@@ -31,6 +34,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
   const [error, setError] = useState<React.ReactNode | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Handle redirect result on component mount if coming back from Google Sign-In
+  useEffect(() => {
+    const handleResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          await syncUserProfile(result.user);
+        }
+      } catch (err: any) {
+        setError(parseFirebaseError(err));
+      }
+    };
+    handleResult();
+  }, []);
 
   const parseFirebaseError = (err: any) => {
     const code = err.code || "";
@@ -123,11 +141,18 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onBack, onLogin }) => {
     setIsSubmitting(true);
     try {
       const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
-      await syncUserProfile(result.user);
+      // Improved check for mobile/tablet to choose redirect over popup
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        await signInWithRedirect(auth, provider);
+        // Note: No further code runs as redirect unloads the page
+      } else {
+        const result = await signInWithPopup(auth, provider);
+        await syncUserProfile(result.user);
+      }
     } catch (err: any) {
       setError(parseFirebaseError(err));
-    } finally {
       setIsSubmitting(false);
     }
   };

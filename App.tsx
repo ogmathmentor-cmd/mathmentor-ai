@@ -18,7 +18,7 @@ import Toast from './components/Toast';
 import { solveMathProblemStream, generateIllustration } from './services/geminiService';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { Sparkles, ChevronLeft, ChevronRight, WifiOff } from 'lucide-react';
 
 interface FocusArea {
@@ -225,7 +225,7 @@ const App: React.FC = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isFocusMinimized, setIsFocusMinimized] = useState(false);
   const [socraticEnabled, setSocraticEnabled] = useState(true);
-  const [reasoningMode, setReasoningMode] = useState<'fast' | 'deep'>('deep');
+  const [reasoningMode, setReasoningMode] = useState<'fast' | 'deep'>('fast');
   const [chatMode, setChatMode] = useState<ChatMode | null>('learning');
   const [pendingProblem, setPendingProblem] = useState<{text: string; attachment?: FileAttachment} | null>(null);
   const [activeFocusAreas, setActiveFocusAreas] = useState<string[]>([]);
@@ -262,9 +262,20 @@ const App: React.FC = () => {
             if (data.level) setLevel(data.level as UserLevel);
             if (data.mode) setChatMode(data.mode as ChatMode);
             if (data.language) setLanguage(data.language as Language);
-            // etc
+          } else {
+            // New user via Google Redirect or otherwise: initialize their profile doc
+            await setDoc(docRef, {
+              email: firebaseUser.email || '',
+              name: userData.name,
+              level: "Secondary",
+              mode: "learning",
+              onboardingShown: false,
+              zoom: 100,
+              createdAt: new Date(),
+              isAnonymous: firebaseUser.isAnonymous
+            });
           }
-        } catch (e) { console.error("Firestore Load Error:", e); }
+        } catch (e) { console.error("Firestore Load/Init Error:", e); }
       } else {
         setUser(null);
       }
@@ -384,7 +395,7 @@ const App: React.FC = () => {
       setMessages(prev => [...prev, { role: 'model', text: language === 'BM' ? "Maaf, anda luar talian." : "Sorry, you are offline.", timestamp: new Date(), error: true }]);
       return;
     }
-    if (level === UserLevel.OPENAI) await handleKeySelection();
+    if (level === UserLevel.OPENAI || reasoningMode === 'deep') await handleKeySelection();
     setIsLoading(true);
     let illustrationStarted = false;
     setMessages(prev => [...prev, { role: 'model', text: "", timestamp: new Date() }]);

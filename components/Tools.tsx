@@ -1,4 +1,3 @@
-
 // components/Tools.tsx
 
 import React, { useState, useEffect } from 'react';
@@ -120,6 +119,12 @@ const QuizMarkdownComponents: any = {
       : <pre className="p-2 bg-slate-50 dark:bg-black/30 rounded-lg overflow-x-auto"><code>{children}</code></pre>
   },
   math: ({ value }: any) => <MathRenderer latex={value} displayMode={true} />,
+  inlineMath: ({ value }: any) => <MathRenderer latex={value} displayMode={false} />
+};
+
+const OptionMarkdownComponents: any = {
+  p: ({ children }: any) => <span className="leading-normal">{children}</span>,
+  math: ({ value }: any) => <MathRenderer latex={value} displayMode={false} className="inline-block" />,
   inlineMath: ({ value }: any) => <MathRenderer latex={value} displayMode={false} />
 };
 
@@ -396,7 +401,13 @@ const QuizCenter: React.FC<{
                   {String.fromCharCode(65 + i)}
                 </span>
                 <div className={`flex-1 font-medium leading-normal dark:prose-invert ${isEnlarged ? 'text-xl' : 'text-[13px] prose-xs'}`}>
-                  <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]} components={QuizMarkdownComponents}>{opt}</ReactMarkdown>
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkMath]} 
+                    rehypePlugins={[rehypeKatex]} 
+                    components={OptionMarkdownComponents}
+                  >
+                    {opt.includes('\\') && !opt.includes('$') ? `$${opt}$` : opt}
+                  </ReactMarkdown>
                 </div>
                 {checkIcon}
               </button>
@@ -472,7 +483,7 @@ const QuizCenter: React.FC<{
              <Trophy size={isEnlarged ? 84 : 56} className={`${performance >= 80 ? 'animate-bounce' : ''}`} />
              <div className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin-slow opacity-20" />
           </div>
-          <div className={`absolute top-4 -right-2 bg-amber-400 text-white rounded-full shadow-xl border-2 border-white dark:border-slate-900 ${isEnlarged ? 'p-4' : 'p-2'}`}>
+          <div className={`absolute top-4 -right-2 bg-amber-400 text-white rounded-full shadow-xl border-2 border-white dark:border-slate-950 ${isEnlarged ? 'p-4' : 'p-2'}`}>
             <Award size={isEnlarged ? 32 : 20} />
           </div>
         </div>
@@ -536,7 +547,7 @@ const QuizCenter: React.FC<{
                     {result?.isCorrect ? (
                       <span className={`flex items-center gap-1 font-black text-emerald-600 dark:text-emerald-500 uppercase ${isEnlarged ? 'text-lg' : 'text-[9px]'}`}><CheckCircle2 size={isEnlarged ? 20 : 10} /> {t.correct}</span>
                     ) : (
-                      <span className={`flex items-center gap-1 font-black text-red-500 dark:text-red-400 uppercase ${isEnlarged ? 'text-lg' : 'text-[9px]'}`}><XCircle size={isEnlarged ? 20 : 10} /> {t.wrong}</span>
+                      <span className={`flex items-center gap-1 font-black text-red-500 dark:text-red-400 uppercase ${isEnlarged ? 'text-lg' : 'text-[9px]'}`}><XCircle size={20} /> {t.wrong}</span>
                     )}
                  </div>
                  <div className={`font-bold text-slate-800 dark:text-slate-200 dark:prose-invert mb-6 ${isEnlarged ? 'text-2xl prose-xl' : 'text-[13px] prose-xs'}`}>

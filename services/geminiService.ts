@@ -125,7 +125,7 @@ export const solveMathProblemStream = async (
   focusAreas?: string[],
   subLevel?: string | null,
   socraticEnabled: boolean = true,
-  reasoningMode: 'fast' | 'deep' = 'deep'
+  reasoningMode: 'fast' | 'deep' = 'fast'
 ): Promise<MathResponse> => {
   const key = process.env.API_KEY;
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
@@ -133,13 +133,13 @@ export const solveMathProblemStream = async (
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // Updated to always use Gemini 3.0 Flash for standard tasks as requested
-    const modelName = 'gemini-3-flash-preview';
+    // Fast = Gemini 3.0 Flash, Deep = Gemini 3.0 Pro (Standard for deep tasks)
+    const modelName = reasoningMode === 'deep' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
     let thinkingBudget = 0;
-    // Gemini 3 Flash supports thinking config up to 24576 tokens
+    // Maximum thinking budget for Gemini 3 Pro is 32768 tokens.
     if (reasoningMode === 'deep') {
-      thinkingBudget = 4000;
+      thinkingBudget = 16000;
     }
 
     const contents = history.map(msg => ({
@@ -164,7 +164,7 @@ ${problem}
       .replace(/\[LANGUAGE_TOKEN\]/g, language)
       .replace(/\[USER_LEVEL\]/g, level);
 
-    if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) {
+    if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI || reasoningMode === 'deep') {
       systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
     }
     if (subLevel?.includes('Addmath')) {
@@ -179,10 +179,8 @@ ${problem}
     const config: any = {
       systemInstruction,
       temperature: mode === 'fast' ? 0.0 : 0.2,
-      maxOutputTokens: 8192,
-      // Google Search is only supported on certain models, keeping it for OpenAI level logic if needed, 
-      // but primarily focusing on Flash 3.0 performance.
-      tools: (level === UserLevel.OPENAI) ? [{ googleSearch: {} }] : [],
+      maxOutputTokens: 20000, // Balanced for response + thinking
+      tools: (level === UserLevel.OPENAI || reasoningMode === 'deep') ? [{ googleSearch: {} }] : [],
     };
     
     if (thinkingBudget > 0) {
@@ -223,14 +221,14 @@ export const solveMathProblem = async (
   focusAreas?: string[],
   subLevel?: string | null,
   socraticEnabled: boolean = true,
-  reasoningMode: 'fast' | 'deep' = 'deep'
+  reasoningMode: 'fast' | 'deep' = 'fast'
 ): Promise<MathResponse> => {
   const key = process.env.API_KEY;
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    // Updated to Gemini 3.0 Flash
-    const modelName = 'gemini-3-flash-preview';
+    // Fast = Gemini 3.0 Flash, Deep = Gemini 3.0 Pro
+    const modelName = reasoningMode === 'deep' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -244,7 +242,7 @@ export const solveMathProblem = async (
       .replace(/\[LANGUAGE_TOKEN\]/g, language)
       .replace(/\[USER_LEVEL\]/g, level);
       
-    if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI) {
+    if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI || reasoningMode === 'deep') {
       systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
     }
     if (subLevel?.includes('Addmath')) {
@@ -252,10 +250,20 @@ export const solveMathProblem = async (
     }
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
+    const config: any = { 
+      systemInstruction, 
+      temperature: 0.2, 
+      maxOutputTokens: 8192 
+    };
+
+    if (reasoningMode === 'deep') {
+      config.thinkingConfig = { thinkingBudget: 4000 };
+    }
+
     const response = await ai.models.generateContent({ 
       model: modelName, 
       contents, 
-      config: { systemInstruction, temperature: 0.2, maxOutputTokens: 4096 } 
+      config 
     });
     return { text: response.text || "", citations: [], isError: false };
   };
@@ -292,7 +300,7 @@ export const generateIllustration = async (prompt: string, size: ImageSize = '1K
   if (!key) return null;
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    // Note: Image generation usually stays on the flash image model as there is no 'Gemini 3 Flash Image' yet in the specs
+    // Note: Image generation usually stays on the flash image model
     const model = 'gemini-2.5-flash-image';
     
     const refinedPrompt = `Math diagram: ${prompt}. Style: 2D B&W line art, white bg, precise geometry, textbook labels. No photorealism.`;
