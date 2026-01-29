@@ -89,8 +89,8 @@ const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto bg-slate-50/50 dark:bg-[#0b0f1a] custom-scrollbar animate-in fade-in duration-500">
-      <div className="max-w-4xl mx-auto px-4 py-8 lg:py-12">
+    <div className="h-full w-full overflow-y-auto bg-slate-50/50 dark:bg-[#0b0f1a] custom-scrollbar animate-in fade-in duration-500">
+      <div className="max-w-4xl mx-auto px-4 py-8 lg:py-12 pb-24 md:pb-12">
         <div className="flex items-center gap-4 mb-10">
           <button 
             onClick={subView === 'main' ? onBack : () => setSubView('main')}

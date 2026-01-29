@@ -90,16 +90,25 @@ STRICT: Output ONLY the final answer in LaTeX ($$ ... $$). No extra words.`
 
 const handleApiError = (error: any, language: Language): string => {
   console.error("Gemini API Error:", error);
+  const status = error?.status || error?.error?.status;
+  if (status === 'UNAVAILABLE' || status === 503) {
+    return language === 'BM' ? "Pelayan sedang sesak (Overloaded). Sila cuba lagi sebentar." : "The model is overloaded. Please try again in a few moments.";
+  }
   return language === 'BM' ? "Sistem AI sedang sibuk. Sila cuba lagi sebentar." : "The AI is currently busy. Please try again in a few moments.";
 };
 
-async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 1500): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
-    if (retries > 0) {
+    const status = error?.status || error?.error?.status;
+    // Explicitly retry on 503 (UNAVAILABLE) and 429 (RESOURCE_EXHAUSTED)
+    const isRetryable = status === 'UNAVAILABLE' || status === 'RESOURCE_EXHAUSTED' || status === 503 || status === 429;
+    
+    if (retries > 0 && (isRetryable || !status)) {
+      console.warn(`API Overloaded or error encountered. Retrying in ${delay}ms... (${retries} retries left)`);
       await new Promise(resolve => setTimeout(resolve, delay));
-      return withRetry(fn, retries - 1, delay * 1.5);
+      return withRetry(fn, retries - 1, delay * 2);
     }
     throw error;
   }
@@ -124,11 +133,12 @@ export const solveMathProblemStream = async (
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    const isPro = level === UserLevel.OPENAI;
-    const modelName = isPro ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+    // Updated to always use Gemini 3.0 Flash for standard tasks as requested
+    const modelName = 'gemini-3-flash-preview';
     
     let thinkingBudget = 0;
-    if (isPro && reasoningMode === 'deep') {
+    // Gemini 3 Flash supports thinking config up to 24576 tokens
+    if (reasoningMode === 'deep') {
       thinkingBudget = 4000;
     }
 
@@ -170,6 +180,8 @@ ${problem}
       systemInstruction,
       temperature: mode === 'fast' ? 0.0 : 0.2,
       maxOutputTokens: 8192,
+      // Google Search is only supported on certain models, keeping it for OpenAI level logic if needed, 
+      // but primarily focusing on Flash 3.0 performance.
       tools: (level === UserLevel.OPENAI) ? [{ googleSearch: {} }] : [],
     };
     
@@ -217,7 +229,8 @@ export const solveMathProblem = async (
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    const modelName = (level === UserLevel.OPENAI) ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
+    // Updated to Gemini 3.0 Flash
+    const modelName = 'gemini-3-flash-preview';
     
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -256,81 +269,108 @@ export const solveMathProblem = async (
 export const generateStudyNotes = async (files: FileAttachment[], language: Language): Promise<string> => {
   const key = process.env.API_KEY;
   if (!key) return "API Key missing.";
-  const ai = new GoogleGenAI({ apiKey: key });
-  const parts: any[] = [{ text: "Synthesize core concepts into a compact study sheet. Focus on definitions, rules, and examples." }];
-  files.forEach(f => parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } }));
-  const res = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: [{ role: 'user', parts }],
-    config: { systemInstruction: "Create a compact study sheet. Language: " + language }
-  });
-  return res.text || "";
+  const executeCall = async () => {
+    const ai = new GoogleGenAI({ apiKey: key });
+    const parts: any[] = [{ text: "Synthesize core concepts into a compact study sheet. Focus on definitions, rules, and examples." }];
+    files.forEach(f => parts.push({ inlineData: { mimeType: f.mimeType, data: f.data } }));
+    const res = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [{ role: 'user', parts }],
+      config: { systemInstruction: "Create a compact study sheet. Language: " + language }
+    });
+    return res.text || "";
+  };
+  try {
+    return await withRetry(executeCall);
+  } catch (error) {
+    return handleApiError(error, language);
+  }
 };
 
 export const generateIllustration = async (prompt: string, size: ImageSize = '1K', isManualHighRes = false): Promise<string | null> => {
   const key = process.env.API_KEY;
   if (!key) return null;
-  const ai = new GoogleGenAI({ apiKey: key });
-  const model = 'gemini-2.5-flash-image';
-  
-  const refinedPrompt = `Math diagram: ${prompt}. Style: 2D B&W line art, white bg, precise geometry, textbook labels. No photorealism.`;
+  const executeCall = async () => {
+    const ai = new GoogleGenAI({ apiKey: key });
+    // Note: Image generation usually stays on the flash image model as there is no 'Gemini 3 Flash Image' yet in the specs
+    const model = 'gemini-2.5-flash-image';
+    
+    const refinedPrompt = `Math diagram: ${prompt}. Style: 2D B&W line art, white bg, precise geometry, textbook labels. No photorealism.`;
 
-  const res = await ai.models.generateContent({
-    model,
-    contents: { parts: [{ text: refinedPrompt }] },
-    config: { imageConfig: { aspectRatio: "1:1" } }
-  });
-  const part = res.candidates?.[0]?.content?.parts.find(p => p.inlineData);
-  return part ? `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` : null;
+    const res = await ai.models.generateContent({
+      model,
+      contents: { parts: [{ text: refinedPrompt }] },
+      config: { imageConfig: { aspectRatio: "1:1" } }
+    });
+    const part = res.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+    return part ? `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` : null;
+  };
+  try {
+    return await withRetry(executeCall);
+  } catch (error) {
+    console.error("Illustration generation failed after retries:", error);
+    return null;
+  }
 };
 
 export const generateQuiz = async (topic: string, level: UserLevel, language: Language, difficulty: QuizDifficulty = 'medium', focusAreas?: string[]): Promise<Quiz> => {
   const key = process.env.API_KEY;
   if (!key) throw new Error("API Key missing.");
-  const ai = new GoogleGenAI({ apiKey: key });
-  const model = 'gemini-3-flash-preview';
+  
+  const executeCall = async () => {
+    const ai = new GoogleGenAI({ apiKey: key });
+    // Updated to Gemini 3.0 Flash
+    const model = 'gemini-3-flash-preview';
 
-  let languageDirective = "";
-  if (language === 'BM') {
-    languageDirective = `### MALAYSIAN KSSM TRANSLATION PROTOCOL (STRICT): formal clear textbook Bahasa Melayu.`;
-  }
-
-  const res = await ai.models.generateContent({
-    model,
-    contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}.` }] }],
-    config: {
-      systemInstruction: `Generate a detailed math quiz in ${language} for ${level} level students. 
-      Topic: ${topic}. 
-      Ensure each question includes a thorough explanation with clear LaTeX formatting.
-      Format the output as JSON according to the schema.
-      ${languageDirective}
-      ${LATEX_FORMATTING_GUIDE}`,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          title: { type: Type.STRING },
-          questions: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                question: { type: Type.STRING },
-                options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                correctAnswerIndex: { type: Type.INTEGER },
-                explanation: { type: Type.STRING },
-                pitfalls: { type: Type.STRING },
-                alternatives: { type: Type.STRING }
-              },
-              required: ["question", "options", "correctAnswerIndex", "explanation", "pitfalls", "alternatives"]
-            }
-          }
-        },
-        required: ["title", "questions"]
-      }
+    let languageDirective = "";
+    if (language === 'BM') {
+      languageDirective = `### MALAYSIAN KSSM TRANSLATION PROTOCOL (STRICT): formal clear textbook Bahasa Melayu.`;
     }
-  });
-  return JSON.parse(res.text || "{}");
+
+    const res = await ai.models.generateContent({
+      model,
+      contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}.` }] }],
+      config: {
+        systemInstruction: `Generate a detailed math quiz in ${language} for ${level} level students. 
+        Topic: ${topic}. 
+        Ensure each question includes a thorough explanation with clear LaTeX formatting.
+        Format the output as JSON according to the schema.
+        ${languageDirective}
+        ${LATEX_FORMATTING_GUIDE}`,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            questions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  question: { type: Type.STRING },
+                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  correctAnswerIndex: { type: Type.INTEGER },
+                  explanation: { type: Type.STRING },
+                  pitfalls: { type: Type.STRING },
+                  alternatives: { type: Type.STRING }
+                },
+                required: ["question", "options", "correctAnswerIndex", "explanation", "pitfalls", "alternatives"]
+              }
+            }
+          },
+          required: ["title", "questions"]
+        }
+      }
+    });
+    return JSON.parse(res.text || "{}");
+  };
+
+  try {
+    return await withRetry(executeCall);
+  } catch (error) {
+    console.error("Quiz generation failed after retries:", error);
+    throw error;
+  }
 };
 
 export interface MathResponse {

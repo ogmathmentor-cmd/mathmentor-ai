@@ -1,3 +1,4 @@
+
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -481,7 +482,7 @@ const App: React.FC = () => {
 
       {view === 'home' ? (
         <div className="w-full h-full overflow-y-auto">
-          <HomeScreen onStart={() => setView('app')} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} onOpenMenu={() => setIsDrawerOpen(true)} onLogin={() => setIsAuthModalOpen(true)} user={user} feedbacks={feedbacks} />
+          <HomeScreen onStart={() => setView('app')} isDarkMode={isDarkMode} toggleTheme={() => setIsDarkMode(!isDarkMode)} onOpenMenu={() => setIsDrawerOpen(true)} onLogin={() => setIsAuthModalOpen(true)} user={user} feedbacks={feedbacks} language={language} setLanguage={setLanguage} />
         </div>
       ) : (
         <div className="flex flex-col w-full h-full overflow-hidden">

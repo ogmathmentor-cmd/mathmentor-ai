@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { GraduationCap, Sparkles, BrainCircuit, BookOpen, Rocket, ArrowRight, Moon, Sun, Menu, User as UserIcon, Mail, Instagram, Phone, Star, ShieldCheck, ChevronRight, Zap, Target, Lightbulb, CheckCircle2 } from 'lucide-react';
-import { Feedback } from '../types';
+import { Feedback, Language } from '../types';
 import MathRenderer from './MathRenderer';
 
 interface User {
@@ -17,9 +18,21 @@ interface HomeScreenProps {
   onLogin: () => void;
   user: User | null;
   feedbacks: Feedback[];
+  language: Language;
+  setLanguage: (lang: Language) => void;
 }
 
-const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleTheme, onOpenMenu, onLogin, user, feedbacks }) => {
+const HomeScreen: React.FC<HomeScreenProps> = ({ 
+  onStart, 
+  isDarkMode, 
+  toggleTheme, 
+  onOpenMenu, 
+  onLogin, 
+  user, 
+  feedbacks,
+  language,
+  setLanguage
+}) => {
   const [activeConcept, setActiveConcept] = useState(0);
   const concepts = [
     { title: "Calculus", eq: "\\int x^2 dx = \\frac{x^3}{3} + C", desc: "Understanding area under curves." },
@@ -71,6 +84,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
         </div>
 
         <div className="flex items-center gap-2 md:gap-4">
+          {/* Language Switcher */}
+          <div className="flex items-center bg-slate-100 dark:bg-slate-900 rounded-xl p-0.5 md:p-1 border border-slate-200 dark:border-slate-800 shadow-sm">
+            <button 
+              onClick={() => setLanguage('BM')}
+              className={`px-2 py-1.5 rounded-lg text-[9px] font-black transition-all md:px-3 md:text-[10px] ${language === 'BM' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              BM
+            </button>
+            <button 
+              onClick={() => setLanguage('EN')}
+              className={`px-2 py-1.5 rounded-lg text-[9px] font-black transition-all md:px-3 md:text-[10px] ${language === 'EN' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+            >
+              EN
+            </button>
+          </div>
+
           <button
             onClick={toggleTheme}
             className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 active:scale-95 transition-transform"
@@ -109,7 +138,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
               Advanced <span className="text-indigo-600 dark:text-indigo-400">Math AI</span>
             </h1>
             <p className="text-base md:text-2xl text-slate-600 dark:text-slate-400 font-medium leading-relaxed max-w-2xl mx-auto px-4">
-              An open-minded, concise, and logical tutor designed to help you navigate the complex beauty of mathematics.
+              {language === 'BM' 
+                ? 'Tutor AI terbuka, ringkas, dan logik yang direka untuk membantu anda mengemudi keindahan matematik yang kompleks.'
+                : 'An open-minded, concise, and logical tutor designed to help you navigate the complex beauty of mathematics.'}
             </p>
           </div>
         </div>
@@ -120,27 +151,27 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
             className="group relative w-full sm:w-auto px-12 py-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full font-black text-xl md:text-2xl shadow-2xl shadow-indigo-500/40 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3 overflow-hidden"
           >
             <Rocket className="w-6 h-6 animate-bounce" />
-            Solve Any Problem
+            {language === 'BM' ? 'Selesaikan Masalah' : 'Solve Any Problem'}
             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
             <span className="absolute inset-0 rounded-full bg-indigo-500/20 animate-ping -z-10" />
           </button>
           <div className="flex items-center gap-6 mt-4">
             <div className="flex items-center gap-2">
               <ShieldCheck size={16} className="text-emerald-500" />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Open-Minded & Adaptable</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{language === 'BM' ? 'Terbuka & Adaptif' : 'Open-Minded & Adaptable'}</span>
             </div>
             <div className="flex items-center gap-2">
               <Zap size={16} className="text-amber-500" />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Concise & Precise Answers</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{language === 'BM' ? 'Jawapan Ringkas & Tepat' : 'Concise & Precise Answers'}</span>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full mb-32">
           {[
-            { icon: <Target className="text-indigo-500" size={24} />, title: "Logic First", desc: "Our AI prioritizes clarity and logical patient explanations for every problem." },
-            { icon: <Lightbulb className="text-amber-500" size={24} />, title: "Any Difficulty", desc: "From elementary addition to advanced tensor calculus, we solve it all." },
-            { icon: <BrainCircuit className="text-emerald-500" size={24} />, title: "Adaptable Style", desc: "Choose between detailed Socratic tutoring or ultra-concise fast answers." }
+            { icon: <Target className="text-indigo-500" size={24} />, title: language === 'BM' ? 'Logik Utama' : "Logic First", desc: language === 'BM' ? 'AI kami mengutamakan kejelasan dan penjelasan logik yang sabar untuk setiap masalah.' : "Our AI prioritizes clarity and logical patient explanations for every problem." },
+            { icon: <Lightbulb className="text-amber-500" size={24} />, title: language === 'BM' ? 'Mana-mana Tahap' : "Any Difficulty", desc: language === 'BM' ? 'Dari penambahan asas hingga kalkulus tensor lanjutan, kami selesaikan semuanya.' : "From elementary addition to advanced tensor calculus, we solve it all." },
+            { icon: <BrainCircuit className="text-emerald-500" size={24} />, title: language === 'BM' ? 'Gaya Adaptif' : "Adaptable Style", desc: language === 'BM' ? 'Pilih antara bimbingan Socratic terperinci atau jawapan pantas ultra-ringkas.' : "Choose between detailed Socratic tutoring or ultra-concise fast answers." }
           ].map((item, i) => (
             <div key={i} className="bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 p-8 rounded-[2rem] text-left hover:border-indigo-500/50 transition-all group">
               <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
@@ -154,18 +185,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
 
         <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-32 text-left">
           <div className="space-y-6">
-            <h2 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em]">Advanced Tutoring</h2>
+            <h2 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em]">{language === 'BM' ? 'Bimbingan Lanjutan' : 'Advanced Tutoring'}</h2>
             <h3 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-              A smarter way to <span className="text-indigo-600">Solve</span> and <span className="text-emerald-500">Learn</span>.
+              {language === 'BM' ? <>Cara bijak untuk <span className="text-indigo-600">Selesaikan</span> dan <span className="text-emerald-500">Belajar</span>.</> : <>A smarter way to <span className="text-indigo-600">Solve</span> and <span className="text-emerald-500">Learn</span>.</>}
             </h3>
             <p className="text-lg text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-              Experience a math tutor that truly understands context. Whether you need a quick result or a deep conceptual dive, our AI adapts its reasoning to match your goal.
+              {language === 'BM' 
+                ? 'Alami tutor matematik yang benar-benar memahami konteks. Sama ada anda memerlukan keputusan pantas atau penyelaman konsep yang mendalam, AI kami menyesuaikan pemikirannya mengikut matlamat anda.'
+                : 'Experience a math tutor that truly understands context. Whether you need a quick result or a deep conceptual dive, our AI adapts its reasoning to match your goal.'}
             </p>
             <div className="space-y-4">
                {[
-                 "Open-minded handling of unconventional queries.",
-                 "Strict LaTeX formatting for textbook-quality results.",
-                 "Logical, patient, and multi-modal support."
+                 language === 'BM' ? "Pengendalian soalan tidak konvensional secara terbuka." : "Open-minded handling of unconventional queries.",
+                 language === 'BM' ? "Format LaTeX yang ketat untuk keputusan berkualiti buku teks." : "Strict LaTeX formatting for textbook-quality results.",
+                 language === 'BM' ? "Sokongan logik, sabar, dan multi-modal." : "Logical, patient, and multi-modal support."
                ].map((point, i) => (
                  <div key={i} className="flex items-center gap-3">
                    <div className="p-1 bg-emerald-500/10 text-emerald-500 rounded-lg">
@@ -205,7 +238,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ onStart, isDarkMode, toggleThem
         <div id="wall-of-love" className="w-full max-w-5xl px-4 mb-24 scroll-mt-24">
           <div className="text-center mb-12">
              <h2 className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em] mb-4">Community Insights</h2>
-             <h3 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">User Feedbacks</h3>
+             <h3 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight">{language === 'BM' ? 'Maklum Balas Pengguna' : 'User Feedbacks'}</h3>
           </div>
           
           <div className="bg-slate-50/30 dark:bg-slate-900/30 backdrop-blur-sm rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 p-6 md:p-8">
