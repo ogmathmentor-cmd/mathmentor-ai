@@ -102,7 +102,6 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Pr
     return await fn();
   } catch (error: any) {
     const status = error?.status || error?.error?.status;
-    // Explicitly retry on 503 (UNAVAILABLE) and 429 (RESOURCE_EXHAUSTED)
     const isRetryable = status === 'UNAVAILABLE' || status === 'RESOURCE_EXHAUSTED' || status === 503 || status === 429;
     
     if (retries > 0 && (isRetryable || !status)) {
@@ -133,13 +132,12 @@ export const solveMathProblemStream = async (
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // Fast = Gemini 3.0 Flash, Deep = Gemini 2.5 Pro
-    const modelName = reasoningMode === 'deep' ? 'gemini-2.5-pro' : 'gemini-3-flash-preview';
+    // Fast = Gemini 3.0 Flash, Deep = Gemini 3.0 Pro
+    const modelName = reasoningMode === 'deep' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
     let thinkingBudget = 0;
-    // Thinking budget for reasoning-capable models like Gemini 2.5 Pro.
     if (reasoningMode === 'deep') {
-      thinkingBudget = 16000;
+      thinkingBudget = 32768; // Max budget for pro reasoning
     }
 
     const contents = history.map(msg => ({
@@ -227,8 +225,7 @@ export const solveMathProblem = async (
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    // Fast = Gemini 3.0 Flash, Deep = Gemini 2.5 Pro
-    const modelName = reasoningMode === 'deep' ? 'gemini-2.5-pro' : 'gemini-3-flash-preview';
+    const modelName = reasoningMode === 'deep' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -257,7 +254,7 @@ export const solveMathProblem = async (
     };
 
     if (reasoningMode === 'deep') {
-      config.thinkingConfig = { thinkingBudget: 4000 };
+      config.thinkingConfig = { thinkingBudget: 8000 };
     }
 
     const response = await ai.models.generateContent({ 

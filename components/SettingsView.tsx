@@ -6,7 +6,7 @@ import {
   User, Shield, Moon, Sun, Monitor, Languages, Brain, 
   ChevronLeft, Camera, Image as ImageIcon, Check, Lock, 
   ArrowRight, Trash2, X, CheckCircle2, Info, Mail, Save,
-  Cloud, ExternalLink, Globe
+  Cloud, ExternalLink, Globe, Sparkles
 } from 'lucide-react';
 import { UserLevel } from '../types';
 import ConfirmationModal from './ConfirmationModal';
@@ -375,22 +375,35 @@ const SettingsView: React.FC<SettingsViewProps> = ({
                   </div>
 
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-[#0b0f1a] rounded-2xl border border-slate-100 dark:border-slate-800">
-                      <div>
-                        <div className="text-sm font-bold text-slate-900 dark:text-white">Default Reasoning Mode</div>
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Start new chats in this mode</div>
+                    <div className="flex flex-col gap-4 p-5 bg-slate-50 dark:bg-[#0b0f1a] rounded-2xl border border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm font-bold text-slate-900 dark:text-white">Default Reasoning Mode</div>
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">Start new chats in this mode</div>
+                        </div>
+                        <div className="flex bg-slate-200 dark:bg-slate-800 p-1.5 rounded-xl border border-slate-300/50 dark:border-slate-700">
+                          {['fast', 'deep'].map((m) => (
+                            <button 
+                              key={m} 
+                              onClick={() => setReasoningMode(m as 'fast' | 'deep')}
+                              className={`px-5 py-2 rounded-lg text-xs font-black transition-all capitalize flex items-center gap-2 ${reasoningMode === m ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                            >
+                              {m === 'deep' && <Sparkles size={12} fill="white" />}
+                              {m}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex bg-slate-200 dark:bg-slate-800 p-1.5 rounded-xl border border-slate-300/50 dark:border-slate-700">
-                        {['fast', 'deep'].map((m) => (
-                          <button 
-                            key={m} 
-                            onClick={() => setReasoningMode(m as 'fast' | 'deep')}
-                            className={`px-5 py-2 rounded-lg text-xs font-black transition-all capitalize ${reasoningMode === m ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-                          >
-                            {m}
-                          </button>
-                        ))}
-                      </div>
+                      
+                      {reasoningMode === 'deep' && (
+                        <div className="mt-2 p-3 bg-indigo-100/50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200/50 dark:border-indigo-800/50 animate-in slide-in-from-top-2">
+                          <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-400 mb-1">
+                            <Sparkles size={14} fill="currentColor" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Gemini 3 Pro Active</span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">Deep Reasoning enables the high-performance Gemini 3 Pro model with thinking budget for complex proofs and logical derivations.</p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between p-5 bg-slate-50 dark:bg-[#0b0f1a] rounded-2xl border border-slate-100 dark:border-slate-800">
