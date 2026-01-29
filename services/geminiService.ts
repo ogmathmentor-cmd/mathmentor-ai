@@ -321,7 +321,14 @@ export const generateIllustration = async (prompt: string, size: ImageSize = '1K
   }
 };
 
-export const generateQuiz = async (topic: string, level: UserLevel, language: Language, difficulty: QuizDifficulty = 'medium', focusAreas?: string[]): Promise<Quiz> => {
+export const generateQuiz = async (
+  topic: string, 
+  level: UserLevel, 
+  language: Language, 
+  difficulty: QuizDifficulty = 'medium', 
+  focusAreas?: string[],
+  count: number = 5
+): Promise<Quiz> => {
   const key = process.env.API_KEY;
   if (!key) throw new Error("API Key missing.");
   
@@ -337,9 +344,9 @@ export const generateQuiz = async (topic: string, level: UserLevel, language: La
 
     const res = await ai.models.generateContent({
       model,
-      contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz on ${topic}.` }] }],
+      contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz with ${count} questions on ${topic}.` }] }],
       config: {
-        systemInstruction: `Generate a detailed math quiz in ${language} for ${level} level students. 
+        systemInstruction: `Generate a detailed math quiz with exactly ${count} questions in ${language} for ${level} level students. 
         Topic: ${topic}. 
         Ensure each question includes a thorough explanation with clear LaTeX formatting.
         Format the output as JSON according to the schema.
