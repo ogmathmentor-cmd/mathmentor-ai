@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { GraduationCap, Sparkles, BrainCircuit, BookOpen, Rocket, ArrowRight, Moon, Sun, Menu, User as UserIcon, Mail, Instagram, Phone, Star, ShieldCheck, ChevronRight, Zap, Target, Lightbulb, CheckCircle2 } from 'lucide-react';
 import { Feedback, Language } from '../types';
@@ -135,7 +134,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           </div>
           <div className="space-y-4">
             <h1 className="text-5xl md:text-8xl font-black tracking-tight text-slate-900 dark:text-white leading-[0.9]">
-              Advanced <span className="text-indigo-600 dark:text-indigo-400">Math AI</span>
+              Math <span className="text-indigo-600 dark:text-indigo-400">Mentor AI</span>
             </h1>
             <p className="text-base md:text-2xl text-slate-600 dark:text-slate-400 font-medium leading-relaxed max-w-2xl mx-auto px-4">
               {language === 'BM' 
