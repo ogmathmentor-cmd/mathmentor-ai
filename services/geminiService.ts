@@ -330,6 +330,7 @@ export const generateQuiz = async (
   
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
+    // Gemini 3 Flash is optimal for structured JSON generation with low latency
     const model = 'gemini-3-flash-preview';
 
     let languageDirective = "";
@@ -339,15 +340,26 @@ export const generateQuiz = async (
 
     const res = await ai.models.generateContent({
       model,
-      contents: [{ role: 'user', parts: [{ text: `Generate a ${difficulty} quiz with ${count} questions on ${topic}.` }] }],
+      contents: [{ role: 'user', parts: [{ text: `Action: Generate a ${difficulty} difficulty math quiz.
+Quantity: Exactly ${count} questions.
+Subject: ${topic}.
+Target Audience: ${level} level students.
+Language: ${language}.` }] }],
       config: {
-        systemInstruction: `Generate a detailed math quiz with exactly ${count} questions in ${language} for ${level} level students. 
-        Topic: ${topic}. 
-        Ensure each question includes a thorough explanation with clear LaTeX formatting.
-        Format the output as JSON according to the schema.
-        ${languageDirective}
-        ${LATEX_FORMATTING_GUIDE}`,
+        systemInstruction: `You are a high-speed assessment generator.
+Task: Create a mathematically accurate quiz in JSON format.
+Topic: ${topic}.
+Strict requirements:
+1. Each question must include a thorough explanation.
+2. Use LaTeX for ALL mathematical expressions.
+3. ${languageDirective}
+4. Maintain ${difficulty} difficulty suitable for ${level} level.
+${LATEX_FORMATTING_GUIDE}`,
         responseMimeType: "application/json",
+        // Efficiency tuning: Temperature 0.1 for deterministic structured output
+        // Disabling thinking budget for immediate response in quiz generation
+        temperature: 0.1,
+        thinkingConfig: { thinkingBudget: 0 },
         responseSchema: {
           type: Type.OBJECT,
           properties: {
