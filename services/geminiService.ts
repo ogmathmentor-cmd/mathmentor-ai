@@ -29,7 +29,7 @@ const MATH_WORKING_RULES = `
 ### MATH WORKING RULES (CRITICAL):
 1. CLARITY FIRST: Be logical, patient, and flexible.
 2. CONCISE BY DEFAULT: Provide short, clear answers first. Only provide full step-by-step workings if the current Mode (Learning/Exam) specifically demands it.
-3. EACH mathematical move MUST be on a NEW LINE when showing work.
+3. VERTICAL DERIVATIONS: EVERY mathematical move, transformation, or calculation MUST be on its own NEW LINE. Use bullet points (-) to force verticality. NEVER group multiple logical steps into a single paragraph.
 ${LATEX_FORMATTING_GUIDE}
 ${VISUAL_LEARNING_PROTOCOL}
 ${RESPONSIVE_DIRECTIVE}
@@ -43,16 +43,15 @@ SCOPE: Basic Calculus only.
 - SUPPORTED: Pre-Calculus Foundations, Limits, Continuity, Differentiation (Power, Product, Quotient, Chain rules for polynomials/trig/exp), Integration (Indefinite/Definite, Area), Fundamental Theorem of Calculus.
 
 TEACHING RULES (PERFORMANCE OPTIMIZED):
-1. FAST LOGIC: Omit all conversational fillers ("Here is the solution", "Let me help you with that"). Start directly with the math or the Socratic question.
-2. LOGICAL STEPS: Maintain strict step-by-step derivation. One logical move per line.
+1. FAST LOGIC: Omit all conversational fillers ("Here is the solution"). Start directly with the math.
+2. VERTICAL STEPS: Maintain strict step-by-step derivation. One logical move per line. Use bullet points (-) for the derivation steps to ensure they are displayed line-by-line.
 3. CONCISE REASONING: Explanations for steps must be <10 words. 
 4. NO SKIPPING: Show every algebraic transformation to avoid student confusion.
 5. LANGUAGE: English only.
-6. LATENCY CONTROL: Prioritize high-speed token generation. Use precise, compact LaTeX.
 
 [OUTPUT STRUCTURE]
 - Brief diagnostic question OR the first logical block.
-- Derivation steps using $$ ... $$.
+- Derivation steps as a BULLETED LIST (e.g., - Step 1...) using $$ ... $$.
 - One-sentence wrap up.
 `;
 
@@ -71,14 +70,11 @@ const SYSTEM_PROMPT_CORE = `
 You are an advanced Math AI tutor. Your task is to help learners understand math through logic, patience, and diagnostic feedback.
 
 ### TUTORING TASKS:
-1. **Analyze User Answers**: If the user provides a solution or an answer, your task is to analyze it:
-   - Identify specific errors in reasoning, calculations, or steps.
-   - Provide clear, constructive feedback pointing out exactly what went wrong.
-   - Suggest how to correct the mistake without giving away the final answer immediately.
-   - Lead the user to the correct path with hints or guided steps.
+1. **Analyze User Answers**: If the user provides a solution, identify specific errors in reasoning.
 2. **Diagnostic Approach**: Do not just give the answer. Check their work!
 3. **Open-minded**: Answer unconventional or creative math questions.
-4. **Formatting**: Use LaTeX ($...$ or $$...$$) strictly.
+4. **Formatting**: Use LaTeX ($...$ or $$...$$) strictly. 
+5. **Layout**: Always prefer vertical lists for step-by-step content.
 
 ### CORE PRINCIPLES:
 1. **Adaptable**: Adjust style to [USER_LEVEL].
@@ -97,26 +93,27 @@ const MODE_INSTRUCTIONS: Record<ChatMode, string> = {
   learning: `MODE: LEARNING (Socratic & Detailed). 
 - Focus on DIAGNOSING the user's current understanding.
 1. ### 💡 THE BIG IDEA: Brief summary.
-2. ### 🛠️ THE STEP-BY-STEP: Detailed derivation, one move per line.
+2. ### 🛠️ THE STEP-BY-STEP: Detailed derivation as a BULLETED LIST. EVERY step must be on a new line with a leading hyphen (-). No paragraphs for steps.
 3. ### 🧠 THE ANALOGY: Simple comparison.
 4. ### ✅ QUICK CHECK: One question for student engagement.`,
 
   exam: `MODE: EXAM (Formal & Precise). 
 - Focus on formal steps and marking criteria.
+- Step-by-step derivation must be a vertical bulleted list.
 - Include "Marking Tips" or pitfall warnings.`,
 
   fast: `MODE: FAST ANSWER (Brief & Direct).
 STRICT RULES: 
-- Output ONLY the final mathematical answer or the most simplified result.
-- Use LaTeX ($$ ... $$) for the answer.
-- DO NOT provide any steps.
-- DO NOT provide any explanations.
-- DO NOT ask any follow-up questions or diagnostic questions.
-- NO extra words whatsoever. Just the result.`
+- Output ONLY the final mathematical answer.
+- Use LaTeX ($$ ... $$).
+- NO extra words whatsoever.`
 };
 
 const handleApiError = (error: any, language: Language): string => {
   console.error("Gemini API Error:", error);
+  if (error.name === 'AbortError' || error.message === 'TIMEOUT') {
+    return language === 'BM' ? "Masa tamat (30s). Sila cuba soalan yang lebih ringkas." : "Request timed out (30s). Please try a simpler query.";
+  }
   const status = error?.status || error?.error?.status;
   if (status === 'UNAVAILABLE' || status === 503) {
     return language === 'BM' ? "Pelayan sedang sesak (Overloaded). Sila cuba lagi sebentar." : "The model is overloaded. Please try again in a few moments.";
@@ -128,6 +125,8 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delay = 2000): Pr
   try {
     return await fn();
   } catch (error: any) {
+    if (error.name === 'AbortError' || error.message === 'TIMEOUT') throw error;
+    
     const status = error?.status || error?.error?.status;
     const isRetryable = status === 'UNAVAILABLE' || status === 'RESOURCE_EXHAUSTED' || status === 503 || status === 429;
     
@@ -156,18 +155,16 @@ export const solveMathProblemStream = async (
   const key = process.env.API_KEY;
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
   
+  const startTime = Date.now();
+  const MIN_DELAY = 3000;
+  const MAX_DELAY = 30000;
+  
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     
-    // Fast = Gemini 3.0 Flash, Deep = Gemini 3.0 Pro
     const modelName = reasoningMode === 'deep' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
     
-    let thinkingBudget = 0;
-    if (reasoningMode === 'deep') {
-      // 32768 is max, but user requested 20s thinking limit for Calculus. 
-      // Roughly 8000-10000 tokens of thinking fits well within 20s latency.
-      thinkingBudget = level === UserLevel.BASIC_CALCULUS ? 8192 : 32768;
-    }
+    const thinkingBudget = reasoningMode === 'deep' ? 32768 : 16384; 
 
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
@@ -204,7 +201,6 @@ ${problem}
     
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
-    // Skip socratic protocol entirely if mode is 'fast' to ensure only answers are returned.
     if (mode !== 'fast' && socraticEnabled && level !== UserLevel.BASIC_CALCULUS) {
         systemInstruction += `\n### SOCRATIC PROTOCOL: Always check if the user provided an answer or a logic attempt. If they did, critique it before helping. If they didn't, ask them "What do you think is the first step?" before solving the whole thing.`;
     }
@@ -220,23 +216,41 @@ ${problem}
       config.thinkingConfig = { thinkingBudget };
     }
 
-    const stream = await ai.models.generateContentStream({ model: modelName, contents, config });
-    let fullText = "";
-    const citations: Citation[] = [];
-    for await (const chunk of stream) {
-      const textChunk = chunk.text || "";
-      fullText += textChunk;
-      onChunk(fullText);
-      if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
-        for (const gChunk of chunk.candidates[0].groundingMetadata.groundingChunks) {
-          if (gChunk.web && !citations.find(c => c.uri === gChunk.web?.uri)) {
-            citations.push({ title: gChunk.web.title || 'Source', uri: gChunk.web.uri });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), MAX_DELAY);
+
+    try {
+      const stream = await ai.models.generateContentStream({ model: modelName, contents, config });
+      let fullText = "";
+      const citations: Citation[] = [];
+      
+      for await (const chunk of stream) {
+        if (controller.signal.aborted) throw new Error('TIMEOUT');
+
+        const textChunk = chunk.text || "";
+        fullText += textChunk;
+        
+        onChunk(fullText);
+        if (chunk.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+          for (const gChunk of chunk.candidates[0].groundingMetadata.groundingChunks) {
+            if (gChunk.web && !citations.find(c => c.uri === gChunk.web?.uri)) {
+              citations.push({ title: gChunk.web.title || 'Source', uri: gChunk.web.uri });
+            }
           }
         }
       }
+      
+      const totalTimeElapsed = Date.now() - startTime;
+      if (totalTimeElapsed < MIN_DELAY) {
+        await new Promise(resolve => setTimeout(resolve, MIN_DELAY - totalTimeElapsed));
+      }
+
+      return { text: fullText, citations, isError: false };
+    } finally {
+      clearTimeout(timeoutId);
     }
-    return { text: fullText, citations, isError: false };
   };
+
   try {
     return await withRetry(executeCall);
   } catch (error) {
@@ -258,6 +272,11 @@ export const solveMathProblem = async (
 ): Promise<MathResponse> => {
   const key = process.env.API_KEY;
   if (!key) return { text: "API Key missing.", citations: [], isError: true };
+  
+  const startTime = Date.now();
+  const MIN_DELAY = 3000;
+  const MAX_DELAY = 30000;
+
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
     const modelName = reasoningMode === 'deep' ? 'gemini-3-pro-preview' : 'gemini-3-flash-preview';
@@ -289,20 +308,32 @@ export const solveMathProblem = async (
 
     const config: any = { 
       systemInstruction, 
-      temperature: 0.2, 
-      maxOutputTokens: 8192 
+      temperature: mode === 'fast' ? 0.0 : 0.2, 
+      maxOutputTokens: 20000,
+      thinkingConfig: {
+        thinkingBudget: reasoningMode === 'deep' ? 32768 : 16384
+      }
     };
 
-    if (reasoningMode === 'deep') {
-      config.thinkingConfig = { thinkingBudget: level === UserLevel.BASIC_CALCULUS ? 8000 : 16000 };
-    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), MAX_DELAY);
 
-    const response = await ai.models.generateContent({ 
-      model: modelName, 
-      contents, 
-      config 
-    });
-    return { text: response.text || "", citations: [], isError: false };
+    try {
+      const response = await ai.models.generateContent({ 
+        model: modelName, 
+        contents, 
+        config 
+      });
+
+      const totalTimeElapsed = Date.now() - startTime;
+      if (totalTimeElapsed < MIN_DELAY) {
+        await new Promise(resolve => setTimeout(resolve, MIN_DELAY - totalTimeElapsed));
+      }
+
+      return { text: response.text || "", citations: [], isError: false };
+    } finally {
+      clearTimeout(timeoutId);
+    }
   };
   try {
     return await withRetry(executeCall);
@@ -321,7 +352,10 @@ export const generateStudyNotes = async (files: FileAttachment[], language: Lang
     const res = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: [{ role: 'user', parts }],
-      config: { systemInstruction: "Create a compact study sheet. Language: " + language }
+      config: { 
+        systemInstruction: "Create a compact study sheet. Language: " + language,
+        thinkingConfig: { thinkingBudget: 8192 }
+      }
     });
     return res.text || "";
   };
@@ -396,7 +430,7 @@ Strict requirements:
 ${LATEX_FORMATTING_GUIDE}`,
         responseMimeType: "application/json",
         temperature: 0.1,
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: { thinkingBudget: 4096 },
         responseSchema: {
           type: Type.OBJECT,
           properties: {
