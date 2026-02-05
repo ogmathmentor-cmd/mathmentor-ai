@@ -45,7 +45,6 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const innerContainerRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const actualFileInputRef = useRef<HTMLInputElement>(null);
   
@@ -98,6 +97,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
     e.target.value = '';
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file') {
+        const file = items[i].getAsFile();
+        if (file) {
+          processFile(file);
+          // Only handle one file at a time for now to match current UI
+          break;
+        }
+      }
+    }
+  };
+
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const text = input.trim();
@@ -123,7 +136,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
         colorClass = "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800";
       } else if (text.includes("STEP")) {
         icon = <ListChecks size={14} />;
-        colorClass = "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800";
+        colorClass = "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-amber-400 border-emerald-200 dark:border-emerald-800";
       } else if (text.includes("ANALOGY")) {
         icon = <Sparkles size={14} />;
         colorClass = "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800";
@@ -167,19 +180,21 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
   };
 
   const FastAnswerMarkdownComponents: any = {
-    p: ({ children }: any) => <div className="flex flex-col items-center w-full">{children}</div>,
+    p: ({ children }: any) => <div className="w-full text-center mb-2 last:mb-0 leading-normal">{children}</div>,
     math: ({ value }: any) => (
-      <MathRenderer 
-        latex={value} 
-        displayMode={true} 
-        className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white" 
-      />
+      <div className="w-full flex justify-center my-4">
+        <MathRenderer 
+          latex={value} 
+          displayMode={true} 
+          className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white" 
+        />
+      </div>
     ),
     inlineMath: ({ value }: any) => (
-       <MathRenderer 
+      <MathRenderer 
         latex={value} 
-        displayMode={true} 
-        className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white block w-full text-center" 
+        displayMode={false} 
+        className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white" 
       />
     )
   };
@@ -297,8 +312,23 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
                       : 'bg-[#1e293b] dark:bg-[#0f172a] text-slate-100 border-slate-700/50'
                   }`}>
                     {m.attachment && (
-                      <div className="mb-6 p-4 bg-black/20 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center gap-3 border border-white/5">
-                        <FileText size={18} /> {m.attachment.name}
+                      <div className="mb-6 space-y-4">
+                        {m.attachment.mimeType.startsWith('image/') ? (
+                          <div className="rounded-2xl overflow-hidden border border-white/10 shadow-lg">
+                            <img 
+                              src={`data:${m.attachment.mimeType};base64,${m.attachment.data}`} 
+                              alt={m.attachment.name}
+                              className="w-full h-auto object-contain max-h-[300px]"
+                            />
+                            <div className="p-3 bg-black/20 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 border-t border-white/5">
+                              <ImageIcon size={14} /> {m.attachment.name}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="p-4 bg-black/20 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center gap-3 border border-white/5">
+                            <FileText size={18} /> {m.attachment.name}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -341,7 +371,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
                       ) : (
                         <ReactMarkdown 
                           remarkPlugins={[remarkMath]} 
-                          rehypePlugins={[rehypeKatex]}
+                          rehypePlugins={[rehypeKatex]} 
                           components={m.role === 'model' ? ChatMarkdownComponents : {}}
                         >
                           {m.text}
@@ -405,7 +435,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
           {selectedFile && (
             <div className="mb-3 flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800 animate-in slide-in-from-bottom-2">
               <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
-                <FileText size={16} /> {selectedFile.name}
+                {selectedFile.mimeType.startsWith('image/') ? <ImageIcon size={16} /> : <FileText size={16} />}
+                {selectedFile.name}
               </div>
               <button type="button" onClick={() => setSelectedFile(null)} className="p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900 rounded-lg transition-all"><X size={16} /></button>
             </div>
@@ -423,6 +454,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={handlePaste}
               placeholder="Ask a problem or upload photo."
               className="flex-1 bg-transparent border-none py-3 text-[14px] text-slate-900 dark:text-slate-100 focus:ring-0 outline-none resize-none min-h-[24px] max-h-[160px] custom-scrollbar transition-all font-medium placeholder:text-slate-400 dark:placeholder:text-slate-600"
               onKeyDown={(e) => { 

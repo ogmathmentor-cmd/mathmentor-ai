@@ -333,7 +333,6 @@ const QuizCenter: React.FC<QuizCenterProps> = ({
 
   if (quizState === 'setup') {
     const suggestions = {
-      [UserLevel.BEGINNER]: language === 'BM' ? ['Sifir', 'Bentuk', 'Tambah', 'Wang'] : ['Times Tables', 'Shapes', 'Addition', 'Money'],
       [UserLevel.INTERMEDIATE]: language === 'BM' ? ['Algebra', 'Segitiga', 'Kebarangkalian', 'Graf'] : ['Algebra', 'Triangles', 'Probability', 'Graphs'],
       [UserLevel.ADVANCED]: language === 'BM' ? ['Kalkulus', 'Aljabar Linear', 'Persamaan Perbezaan', 'Statistik'] : ['Calculus', 'Linear Algebra', 'Differential Equations', 'Statistics & Probability'],
       [UserLevel.OPENAI]: ['Number Theory', 'Teaching Math', 'Modern Proofs', 'Topology'],

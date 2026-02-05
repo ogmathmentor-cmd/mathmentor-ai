@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { UserLevel, Language } from '../types';
 import { GraduationCap, Moon, Sun, Menu, ChevronDown, Check, LogOut, Settings, User as UserIcon, Languages } from 'lucide-react';
@@ -34,9 +33,9 @@ const Header: React.FC<HeaderProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const beginnerOptions = ['Standard 1', 'Standard 2', 'Standard 3', 'Standard 4', 'Standard 5', 'Standard 6'];
   const intermediateOptions = ['Form 1', 'Form 2', 'Form 3', 'Form 4', 'Form 5', 'Form 4 (Addmath)', 'Form 5 (Addmath)'];
   const advancedOptions = ['Essential Mathematics'];
+  const basicCalculusOptions = ['Introductory Calculus'];
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -95,9 +94,9 @@ const Header: React.FC<HeaderProps> = ({
                   const isActive = level === l;
                   
                   let options: string[] = [];
-                  if (l === UserLevel.BEGINNER) options = beginnerOptions;
-                  else if (l === UserLevel.INTERMEDIATE) options = intermediateOptions;
+                  if (l === UserLevel.INTERMEDIATE) options = intermediateOptions;
                   else if (l === UserLevel.ADVANCED) options = advancedOptions;
+                  else if (l === UserLevel.BASIC_CALCULUS) options = basicCalculusOptions;
 
                   return (
                     <div key={l} className="relative">
@@ -111,8 +110,8 @@ const Header: React.FC<HeaderProps> = ({
                       >
                         {language === 'BM' 
                           ? l.replace('Secondary', 'Menengah')
-                             .replace('Primary', 'Asas')
                              .replace('Pre-University', 'Pre-Universiti')
+                             .replace('Basic Calculus', 'Kalkulus Asas')
                           : l}
                         <ChevronDown size={14} className={`transition-transform duration-200 ${isMenuOpen ? 'rotate-180' : ''}`} />
                       </button>

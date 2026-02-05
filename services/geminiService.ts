@@ -35,6 +35,27 @@ ${VISUAL_LEARNING_PROTOCOL}
 ${RESPONSIVE_DIRECTIVE}
 `;
 
+const BASIC_CALCULUS_PROTOCOL = `
+### BASIC CALCULUS TUTOR PROTOCOL (STRICT & EFFICIENT)
+You are Gemini 3.0, a specialized Mathematics Tutor AI for Basic Calculus (Introductory Calculus).
+
+SCOPE: Basic Calculus only.
+- SUPPORTED: Pre-Calculus Foundations, Limits, Continuity, Differentiation (Power, Product, Quotient, Chain rules for polynomials/trig/exp), Integration (Indefinite/Definite, Area), Fundamental Theorem of Calculus.
+
+TEACHING RULES (PERFORMANCE OPTIMIZED):
+1. FAST LOGIC: Omit all conversational fillers ("Here is the solution", "Let me help you with that"). Start directly with the math or the Socratic question.
+2. LOGICAL STEPS: Maintain strict step-by-step derivation. One logical move per line.
+3. CONCISE REASONING: Explanations for steps must be <10 words. 
+4. NO SKIPPING: Show every algebraic transformation to avoid student confusion.
+5. LANGUAGE: English only.
+6. LATENCY CONTROL: Prioritize high-speed token generation. Use precise, compact LaTeX.
+
+[OUTPUT STRUCTURE]
+- Brief diagnostic question OR the first logical block.
+- Derivation steps using $$ ... $$.
+- One-sentence wrap up.
+`;
+
 const MMU_CURRICULUM_CONTEXT = `
 ### MMU CURRICULUM:
 CH1: Algebra, CH2: Functions, CH3: Matrices, CH4: Series, CH5: Derivatives, CH6: Integration.
@@ -85,7 +106,13 @@ const MODE_INSTRUCTIONS: Record<ChatMode, string> = {
 - Include "Marking Tips" or pitfall warnings.`,
 
   fast: `MODE: FAST ANSWER (Brief & Direct).
-STRICT: Output ONLY the final answer in LaTeX ($$ ... $$). No extra words.`
+STRICT RULES: 
+- Output ONLY the final mathematical answer or the most simplified result.
+- Use LaTeX ($$ ... $$) for the answer.
+- DO NOT provide any steps.
+- DO NOT provide any explanations.
+- DO NOT ask any follow-up questions or diagnostic questions.
+- NO extra words whatsoever. Just the result.`
 };
 
 const handleApiError = (error: any, language: Language): string => {
@@ -137,7 +164,9 @@ export const solveMathProblemStream = async (
     
     let thinkingBudget = 0;
     if (reasoningMode === 'deep') {
-      thinkingBudget = 32768; // Max budget for pro reasoning
+      // 32768 is max, but user requested 20s thinking limit for Calculus. 
+      // Roughly 8000-10000 tokens of thinking fits well within 20s latency.
+      thinkingBudget = level === UserLevel.BASIC_CALCULUS ? 8192 : 32768;
     }
 
     const contents = history.map(msg => ({
@@ -149,7 +178,7 @@ export const solveMathProblemStream = async (
 [CONTEXT]
 Level: ${level}
 Topic: ${focusAreas?.join(', ') || 'General Math'}
-Socratic Mode: ${socraticEnabled ? 'ON (Ask leading questions/Analyze student logic)' : 'OFF (Explain directly)'}
+Socratic Mode: ${socraticEnabled ? 'ON' : 'OFF'}
 
 [USER QUERY]
 ${problem}
@@ -162,16 +191,22 @@ ${problem}
       .replace(/\[LANGUAGE_TOKEN\]/g, language)
       .replace(/\[USER_LEVEL\]/g, level);
 
-    if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI || reasoningMode === 'deep') {
-      systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
+    if (level === UserLevel.BASIC_CALCULUS) {
+      systemInstruction = BASIC_CALCULUS_PROTOCOL;
+    } else {
+      if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI || reasoningMode === 'deep') {
+        systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
+      }
+      if (subLevel?.includes('Addmath')) {
+        systemInstruction += `\n${KSSM_ADDMATH_CONTEXT}`;
+      }
     }
-    if (subLevel?.includes('Addmath')) {
-      systemInstruction += `\n${KSSM_ADDMATH_CONTEXT}`;
-    }
+    
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
-    if (socraticEnabled) {
-        systemInstruction += `\n### SOCRATIC PROTOCOL: Always check if the user provided an answer or a logic attempt. If they did, critique it before helping. If they didn't, ask them "What do you think is the first step?" or "Which formula should we use here?" before solving the whole thing.`;
+    // Skip socratic protocol entirely if mode is 'fast' to ensure only answers are returned.
+    if (mode !== 'fast' && socraticEnabled && level !== UserLevel.BASIC_CALCULUS) {
+        systemInstruction += `\n### SOCRATIC PROTOCOL: Always check if the user provided an answer or a logic attempt. If they did, critique it before helping. If they didn't, ask them "What do you think is the first step?" before solving the whole thing.`;
     }
 
     const config: any = {
@@ -238,13 +273,18 @@ export const solveMathProblem = async (
     let systemInstruction = SYSTEM_PROMPT_CORE
       .replace(/\[LANGUAGE_TOKEN\]/g, language)
       .replace(/\[USER_LEVEL\]/g, level);
-      
-    if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI || reasoningMode === 'deep') {
-      systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
+    
+    if (level === UserLevel.BASIC_CALCULUS) {
+      systemInstruction = BASIC_CALCULUS_PROTOCOL;
+    } else {
+      if (level === UserLevel.ADVANCED || level === UserLevel.OPENAI || reasoningMode === 'deep') {
+        systemInstruction += `\n${ADVANCED_PROMPT_ADDON}`;
+      }
+      if (subLevel?.includes('Addmath')) {
+        systemInstruction += `\n${KSSM_ADDMATH_CONTEXT}`;
+      }
     }
-    if (subLevel?.includes('Addmath')) {
-      systemInstruction += `\n${KSSM_ADDMATH_CONTEXT}`;
-    }
+
     systemInstruction += `\n${MODE_INSTRUCTIONS[mode]}`;
 
     const config: any = { 
@@ -254,7 +294,7 @@ export const solveMathProblem = async (
     };
 
     if (reasoningMode === 'deep') {
-      config.thinkingConfig = { thinkingBudget: 8000 };
+      config.thinkingConfig = { thinkingBudget: level === UserLevel.BASIC_CALCULUS ? 8000 : 16000 };
     }
 
     const response = await ai.models.generateContent({ 
@@ -330,7 +370,6 @@ export const generateQuiz = async (
   
   const executeCall = async () => {
     const ai = new GoogleGenAI({ apiKey: key });
-    // Gemini 3 Flash is optimal for structured JSON generation with low latency
     const model = 'gemini-3-flash-preview';
 
     let languageDirective = "";
@@ -356,8 +395,6 @@ Strict requirements:
 4. Maintain ${difficulty} difficulty suitable for ${level} level.
 ${LATEX_FORMATTING_GUIDE}`,
         responseMimeType: "application/json",
-        // Efficiency tuning: Temperature 0.1 for deterministic structured output
-        // Disabling thinking budget for immediate response in quiz generation
         temperature: 0.1,
         thinkingConfig: { thinkingBudget: 0 },
         responseSchema: {

@@ -1,4 +1,3 @@
-
 // App.tsx
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -16,9 +15,10 @@ import UserGuide from './components/UserGuide';
 import LiveVoiceOverlay from './components/LiveVoiceOverlay';
 import Toast from './components/Toast';
 import { solveMathProblemStream, generateIllustration } from './services/geminiService';
-import { auth, db } from './firebase';
+import { auth, db, database } from './firebase';
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
+import { ref, onValue, push, set, limitToLast, query } from "firebase/database";
 import { Sparkles, ChevronLeft, ChevronRight, WifiOff } from 'lucide-react';
 
 interface FocusArea {
@@ -41,30 +41,16 @@ const ESSENTIAL_MATH_CHAPTERS: FocusArea[] = [
   { label: 'Integration', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
 ];
 
-const PRIMARY_TRANSLATIONS: Record<string, string> = {
-  'Whole Numbers (1 - 100)': 'Nombor Bulat (1 - 100)',
-  'Basic Operations': 'Operasi Asas',
-  'Fractions': 'Pecahan',
-  'Money': 'Wang',
-  'Time': 'Masa',
-  'Measurement': 'Ukuran dan Sukatan',
-  'Space': 'Ruang',
-  'Data Management': 'Pengurusan Data',
-  'Whole Numbers': 'Nombor Bulat',
-  'Whole Numbers up to 1000': 'Nombor Bulat hingga 1000',
-  'Fractions and Decimals': 'Pecahan dan Perpuluhan',
-  'Whole Numbers up to 10000': 'Nombor Bulat hingga 10000',
-  'Fractions, Decimals and Percentages': 'Pecahan, Perpuluhan dan Peratus',
-  'Coordinates': 'Koordinat',
-  'Numbers and Operations': 'Nombor dan Operasi',
-  'Fractions, Decimals And Percentages': 'Pecahan, Perpuluhan Dan Peratus',
-  'Coordinates, Ratio And Proportion': 'Koordinat, Nisbah Dan Kadaran',
-  'Data Handling': 'Pengendalian Data',
-  'Whole Numbers and Operations': 'Nombor Bulat dan Operasi',
-  'Coordinates, Ratio and Proportions': 'Koordinat, Nisbah dan Kadaran',
-  'Whole Numbers and Basic Operations': 'Nombor Bulat dan Operasi Asas',
-  'Data Handling and Likelihood': 'Pengendalian Data dan Kebarangkalian'
-};
+const BASIC_CALCULUS_CHAPTERS: FocusArea[] = [
+  { label: 'Pre-Calculus Foundations', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Limits (Introductory Level)', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Continuity', color: 'bg-violet-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Differentiation (Core)', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Applications of Differentiation', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Integration (Introductory Level)', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Fundamental Theorem of Calculus', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+  { label: 'Basic Calculus with Trigonometry', color: 'bg-purple-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
+];
 
 const KSSM_INTERMEDIATE_DATA: Record<string, { EN: string[], BM: string[] }> = {
   'Form 1': {
@@ -98,85 +84,15 @@ const KSSM_INTERMEDIATE_DATA: Record<string, { EN: string[], BM: string[] }> = {
 };
 
 const LEVEL_FOCUS_MAP: Record<UserLevel, FocusArea[]> = {
-  [UserLevel.BEGINNER]: [
-    { label: 'Whole Numbers (1 - 100)', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Basic Operations', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Fractions', color: 'bg-purple-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Money', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Time', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Measurement', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Space', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Data Management', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-  ],
   [UserLevel.INTERMEDIATE]: [],
   [UserLevel.ADVANCED]: ESSENTIAL_MATH_CHAPTERS,
+  [UserLevel.BASIC_CALCULUS]: BASIC_CALCULUS_CHAPTERS,
   [UserLevel.OPENAI]: []
 };
 
 const SUB_LEVEL_FOCUS_MAP: Record<string, FocusArea[]> = {
-  'Standard 1': [
-    { label: 'Whole Numbers', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Basic Operations', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Fractions', color: 'bg-purple-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Money', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Time', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Measurement', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Space', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Data Management', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-  ],
-  'Standard 2': [
-    { label: 'Whole Numbers up to 1000', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Basic Operations', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Fractions and Decimals', color: 'bg-purple-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Money', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Time', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Measurement', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Space', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Data Management', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-  ],
-  'Standard 3': [
-    { label: 'Whole Numbers up to 10000', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Basic Operations', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Fractions, Decimals and Percentages', color: 'bg-purple-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Money', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Time', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Measurement', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Space', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Coordinates', color: 'bg-violet-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Data Management', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-  ],
-  'Standard 4': [
-    { label: 'Numbers and Operations', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Fractions, Decimals And Percentages', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Money', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Time', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Measurement', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Space', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Coordinates, Ratio And Proportion', color: 'bg-violet-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Data Handling', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-  ],
-  'Standard 5': [
-    { label: 'Numbers and Operations', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Whole Numbers and Operations', color: 'bg-teal-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Fractions, Decimals and Percentages', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Money', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Time', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Measurement', color: 'bg-lime-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Space', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Coordinates, Ratio and Proportions', color: 'bg-violet-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Data Handling', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-  ],
-  'Standard 6': [
-    { label: 'Whole Numbers and Basic Operations', color: 'bg-emerald-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Fractions, Decimals And Percentages', color: 'bg-blue-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Money', color: 'bg-rose-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Time', color: 'bg-amber-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Measurement', color: 'bg-lime-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Space', color: 'bg-indigo-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Coordinates, Ratio And Proportion', color: 'bg-violet-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-    { label: 'Data Handling and Likelihood', color: 'bg-cyan-600 text-white shadow-sm', inactiveColor: 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500' },
-  ],
   'Essential Mathematics': ESSENTIAL_MATH_CHAPTERS,
+  'Introductory Calculus': BASIC_CALCULUS_CHAPTERS,
 };
 
 interface User {
@@ -253,7 +169,6 @@ const App: React.FC = () => {
         };
         setUser(userData);
         
-        // Load settings from Firestore
         try {
           const docRef = doc(db, "users", firebaseUser.uid);
           const docSnap = await getDoc(docRef);
@@ -263,7 +178,6 @@ const App: React.FC = () => {
             if (data.mode) setChatMode(data.mode as ChatMode);
             if (data.language) setLanguage(data.language as Language);
           } else {
-            // New user via Google Redirect or otherwise: initialize their profile doc
             await setDoc(docRef, {
               email: firebaseUser.email || '',
               name: userData.name,
@@ -283,6 +197,29 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // Realtime Database Listener
+  useEffect(() => {
+    const feedbackRef = ref(database, 'liveFeedback');
+    const feedbackQuery = query(feedbackRef, limitToLast(20));
+    
+    const unsubscribe = onValue(feedbackQuery, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const liveFeedbacks: Feedback[] = Object.entries(data).map(([id, val]: [string, any]) => ({
+          id,
+          userName: val.userName,
+          userPfp: `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${val.avatarSeed || val.userName}`,
+          rating: val.rating || 5,
+          message: val.message,
+          timestamp: new Date(val.timestamp)
+        })).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        setFeedbacks([...liveFeedbacks, ...DEFAULT_FEEDBACKS]);
+      }
+    });
+    
+    return () => unsubscribe();
+  }, []);
+
   // Load other local state
   useEffect(() => {
     const savedMessages = localStorage.getItem(STORAGE_KEYS.MESSAGES);
@@ -298,25 +235,6 @@ const App: React.FC = () => {
     if (savedLanguage) setLanguage(savedLanguage as Language);
     if (savedFocus) {
       try { setActiveFocusAreas(JSON.parse(savedFocus)); } catch (e) {}
-    }
-
-    if (window.firebaseDatabase) {
-      const feedbackRef = window.firebaseDatabase.ref('liveFeedback');
-      const listener = feedbackRef.limitToLast(20).on('value', (snapshot: any) => {
-        const data = snapshot.val();
-        if (data) {
-          const liveFeedbacks: Feedback[] = Object.entries(data).map(([id, val]: [string, any]) => ({
-            id,
-            userName: val.userName,
-            userPfp: `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${val.avatarSeed || val.userName}`,
-            rating: val.rating || 5,
-            message: val.message,
-            timestamp: new Date(val.timestamp)
-          })).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-          setFeedbacks([...liveFeedbacks, ...DEFAULT_FEEDBACKS]);
-        }
-      });
-      return () => feedbackRef.off('value', listener);
     }
   }, []);
 
@@ -351,9 +269,6 @@ const App: React.FC = () => {
       }));
     }
     let options = (subLevel && SUB_LEVEL_FOCUS_MAP[subLevel]) ? [...SUB_LEVEL_FOCUS_MAP[subLevel]] : [...(LEVEL_FOCUS_MAP[level] || [])];
-    if (language === 'BM' && level === UserLevel.BEGINNER) {
-      return options.map(area => ({ ...area, label: PRIMARY_TRANSLATIONS[area.label] || area.label }));
-    }
     return options;
   }, [level, subLevel, language]);
 
@@ -470,16 +385,21 @@ const App: React.FC = () => {
 
   const handleSubmitFeedback = async (text: string, rating: number) => {
     if (!user) return;
-    if (window.firebaseDatabase) {
-      try {
-        const feedbackRef = window.firebaseDatabase.ref('liveFeedback');
-        await feedbackRef.push().set({ userName: user.name, message: text, rating, timestamp: Date.now(), avatarSeed: user.name.toLowerCase() });
-        setHasSubmittedFeedback(true);
-        localStorage.setItem(STORAGE_KEYS.HAS_SUBMITTED_FEEDBACK, 'true');
-        addToast("Feedback shared!", "success");
-        setView('home');
-      } catch (err) { console.error(err); }
-    }
+    try {
+      const feedbackRef = ref(database, 'liveFeedback');
+      const newFeedbackRef = push(feedbackRef);
+      await set(newFeedbackRef, { 
+        userName: user.name, 
+        message: text, 
+        rating, 
+        timestamp: Date.now(), 
+        avatarSeed: user.name.toLowerCase() 
+      });
+      setHasSubmittedFeedback(true);
+      localStorage.setItem(STORAGE_KEYS.HAS_SUBMITTED_FEEDBACK, 'true');
+      addToast("Feedback shared!", "success");
+      setView('home');
+    } catch (err) { console.error(err); }
   };
 
   return (

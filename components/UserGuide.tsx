@@ -33,7 +33,8 @@ const UserGuide: React.FC<UserGuideProps> = ({ isOpen, onClose, level, language 
           title: "1. Choose Your Mode",
           desc: "Look at the top of the chat. Switch between **Learning** (detailed help), **Exam** (formal tips), and **Fast Answer** (just the math).",
           icon: <Zap className="text-amber-500" size={32} />,
-          hint: level === UserLevel.BEGINNER ? "Try 'Learning' first!" : "Use 'Exam' mode for KSSM papers."
+          // Fix: UserLevel.BEGINNER removed as it doesn't exist in types.ts
+          hint: level === UserLevel.INTERMEDIATE ? "Try 'Learning' first!" : "Use 'Exam' mode for KSSM papers."
         },
         {
           title: "2. Ask Anything",
@@ -63,7 +64,7 @@ const UserGuide: React.FC<UserGuideProps> = ({ isOpen, onClose, level, language 
       steps: [
         {
           title: "Selamat Datang ke MathMentor AI",
-          desc: `Saya tutor matematik peribadi anda. Saya telah menyesuaikan ruang kerja untuk tahap ${level === UserLevel.BEGINNER ? 'Asas' : level === UserLevel.INTERMEDIATE ? 'Menengah' : 'Pre-U'} anda.`,
+          desc: `Saya tutor matematik peribadi anda. Saya telah menyesuaikan ruang kerja untuk tahap ${level === UserLevel.INTERMEDIATE ? 'Menengah' : 'Pre-U'} anda.`,
           icon: <GraduationCap className="text-indigo-500" size={32} />,
           hint: "Mari kita lihat alatan anda dalam masa 60 saat."
         },
@@ -71,7 +72,8 @@ const UserGuide: React.FC<UserGuideProps> = ({ isOpen, onClose, level, language 
           title: "1. Pilih Mod Anda",
           desc: "Lihat di bahagian atas sembang. Tukar antara **Learning** (bimbingan terperinci), **Exam** (tips peperiksaan), dan **Fast Answer** (jawapan terus).",
           icon: <Zap className="text-amber-500" size={32} />,
-          hint: level === UserLevel.BEGINNER ? "Cuba 'Learning' dahulu!" : "Gunakan mod 'Exam' untuk kertas KSSM."
+          // Fix: UserLevel.BEGINNER removed as it doesn't exist in types.ts
+          hint: level === UserLevel.INTERMEDIATE ? "Cuba 'Learning' dahulu!" : "Gunakan mod 'Exam' untuk kertas KSSM."
         },
         {
           title: "2. Tanya Apa Sahaja",

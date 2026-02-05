@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import katex from 'katex';
 
@@ -10,26 +9,29 @@ interface MathRendererProps {
 
 /**
  * A dedicated component for rendering LaTeX math using KaTeX.
- * Handles both inline and block math.
+ * Handles both inline and block math with refined cleaning logic.
  */
 const MathRenderer: React.FC<MathRendererProps> = ({ latex = "", displayMode = false, className = "" }) => {
   const html = useMemo(() => {
     if (latex === undefined || latex === null) return "";
     
     try {
-      // Clean up common issues with AI-generated LaTeX (like redundant backslashes or spaces)
-      let cleanLatex = String(latex)
-        .replace(/\\\[/g, '')
-        .replace(/\\\]/g, '')
-        .replace(/\\\(/g, '')
-        .replace(/\\\)/g, '')
-        // Sometimes AI wraps everything in multiple delimiters
-        .replace(/^\s*\$\$/g, '')
-        .replace(/\$\$\s*$/g, '')
-        .replace(/^\s*\$/g, '')
-        .replace(/\$\s*$/g, '')
-        .trim();
+      // Clean only the outermost delimiters produced by some AI formatting behaviors
+      // to avoid breaking internal escaped brackets that are part of math notation.
+      let cleanLatex = String(latex).trim();
+      
+      // Remove starting/ending delimiters if they wrap the entire string
+      if (cleanLatex.startsWith('\\[') && cleanLatex.endsWith('\\]')) {
+        cleanLatex = cleanLatex.substring(2, cleanLatex.length - 2);
+      } else if (cleanLatex.startsWith('\\(') && cleanLatex.endsWith('\\)')) {
+        cleanLatex = cleanLatex.substring(2, cleanLatex.length - 2);
+      } else if (cleanLatex.startsWith('$$') && cleanLatex.endsWith('$$')) {
+        cleanLatex = cleanLatex.substring(2, cleanLatex.length - 2);
+      } else if (cleanLatex.startsWith('$') && cleanLatex.endsWith('$')) {
+        cleanLatex = cleanLatex.substring(1, cleanLatex.length - 1);
+      }
 
+      cleanLatex = cleanLatex.trim();
       if (!cleanLatex) return "";
 
       return katex.renderToString(cleanLatex, {

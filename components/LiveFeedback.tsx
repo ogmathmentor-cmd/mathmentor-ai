@@ -1,26 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, User, MessageSquare, Clock, AlertCircle, Sparkles } from 'lucide-react';
+import { database } from '../firebase';
+import { ref, onValue, push, set, limitToLast, query, off } from "firebase/database";
 
-/**
- * Type definition matching the global feedback structure.
- * We use a simplified version for the live stream.
- */
 interface LiveFeedbackItem {
   id: string;
   userName: string;
   message: string;
   timestamp: number;
   avatarSeed: string;
-}
-
-/**
- * TypeScript declaration for the globally exposed Firebase instance.
- * As per requirements, we assume window.firebaseDatabase is initialized in HTML.
- */
-declare global {
-  interface Window {
-    firebaseDatabase: any;
-  }
 }
 
 const LiveFeedback: React.FC = () => {
@@ -33,16 +21,10 @@ const LiveFeedback: React.FC = () => {
 
   // Initialize Realtime Listener
   useEffect(() => {
-    if (!window.firebaseDatabase) {
-      setError("Firebase Database instance not found.");
-      return;
-    }
-
-    // Reference the 'liveFeedback' node
-    const feedbackRef = window.firebaseDatabase.ref('liveFeedback');
+    const feedbackRef = ref(database, 'liveFeedback');
+    const feedbackQuery = query(feedbackRef, limitToLast(50));
     
-    // Listen for changes (limit to last 50 messages for performance)
-    const listener = feedbackRef.limitToLast(50).on('value', (snapshot: any) => {
+    const unsubscribe = onValue(feedbackQuery, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         const formattedMessages: LiveFeedbackItem[] = Object.entries(data).map(([id, val]: [string, any]) => ({
@@ -66,8 +48,7 @@ const LiveFeedback: React.FC = () => {
       setError("Could not connect to live stream.");
     });
 
-    // Cleanup listener on unmount
-    return () => feedbackRef.off('value', listener);
+    return () => off(feedbackRef);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,10 +59,10 @@ const LiveFeedback: React.FC = () => {
     setError(null);
 
     try {
-      const feedbackRef = window.firebaseDatabase.ref('liveFeedback');
-      const newMessageRef = feedbackRef.push();
+      const feedbackRef = ref(database, 'liveFeedback');
+      const newMessageRef = push(feedbackRef);
       
-      await newMessageRef.set({
+      await set(newMessageRef, {
         userName: userName.trim(),
         message: message.trim(),
         timestamp: Date.now(),

@@ -1,8 +1,8 @@
 
 export enum UserLevel {
-  BEGINNER = 'Primary',
   INTERMEDIATE = 'Secondary',
   ADVANCED = 'Pre-University',
+  BASIC_CALCULUS = 'Basic Calculus',
   OPENAI = 'OpenAI'
 }
 
